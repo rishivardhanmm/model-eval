@@ -1,0 +1,9 @@
+event_id,event,key,status,message,original_event_id,changed_field,original_value,new_value
+1,request_sent,pay-001,FIRST_USE,First request using this idempotency key.,,,,
+2,timeout,pay-001,TRACE_EVENT,timeout recorded; no new payload comparison.,,,,
+3,retry_sent,pay-001,SAFE_RETRY,Same key reused with the same payload.,1,,,
+4,response_received,pay-001,TRACE_EVENT,response_received recorded; no new payload comparison.,,,,
+5,request_sent,profile-002,FIRST_USE,First request using this idempotency key.,,,,
+6,response_received,profile-002,TRACE_EVENT,response_received recorded; no new payload comparison.,,,,
+7,request_sent,pay-001,COLLISION,Same key reused with a different payload.,1,amount,100,500
+8,response_received,pay-001,TRACE_EVENT,response_received recorded; no new payload comparison.,,,,
