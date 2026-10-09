@@ -1,7 +1,0 @@
-1. fictional_trace.json – Contains the sample API retry events used for testing, including a timeout, a safe retry, and a same-key/different-payload collision.
-
-2. retry_checker.py – Python program created in VS Code that checks the trace and identifies first use, safe retries, and unsafe idempotency-key collisions.
-
-3. output folder – Stores the generated analysis results: CSV files for the event/collision details and a PNG chart showing the summary.
-
-4. reliability_note.docx – Final Word report explaining what was tested, the results, the detected collision, why it matters, and the recommended action.

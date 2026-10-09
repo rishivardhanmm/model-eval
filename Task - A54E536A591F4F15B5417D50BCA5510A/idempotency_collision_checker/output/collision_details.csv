@@ -1,2 +1,0 @@
-event_id,event,key,status,message,original_event_id,changed_field,original_value,new_value
-7,request_sent,pay-001,COLLISION,Same key reused with a different payload.,1,amount,100,500
