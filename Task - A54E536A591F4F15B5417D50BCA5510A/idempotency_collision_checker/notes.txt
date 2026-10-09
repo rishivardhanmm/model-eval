@@ -1,0 +1,5 @@
+Compact Retry Contract
+
+Same idempotency key + same payload after a timeout: safe retry.
+Same idempotency key + different payload after a timeout: unsafe collision.
+Analyse a fictional API trace only; no live API calls or data changes.

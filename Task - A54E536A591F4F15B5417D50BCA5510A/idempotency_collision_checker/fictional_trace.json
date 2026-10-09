@@ -1,0 +1,50 @@
+
+[
+  {
+    "event_id": 1,
+    "event": "request_sent",
+    "key": "pay-001",
+    "payload": {"customer_id": "C100", "amount": 100, "currency": "GBP"}
+  },
+  {
+    "event_id": 2,
+    "event": "timeout",
+    "key": "pay-001"
+  },
+  {
+    "event_id": 3,
+    "event": "retry_sent",
+    "key": "pay-001",
+    "payload": {"customer_id": "C100", "amount": 100, "currency": "GBP"}
+  },
+  {
+    "event_id": 4,
+    "event": "response_received",
+    "key": "pay-001",
+    "status": "success"
+  },
+  {
+    "event_id": 5,
+    "event": "request_sent",
+    "key": "profile-002",
+    "payload": {"customer_id": "C200", "name": "Alex"}
+  },
+  {
+    "event_id": 6,
+    "event": "response_received",
+    "key": "profile-002",
+    "status": "success"
+  },
+  {
+    "event_id": 7,
+    "event": "request_sent",
+    "key": "pay-001",
+    "payload": {"customer_id": "C100", "amount": 500, "currency": "GBP"}
+  },
+  {
+    "event_id": 8,
+    "event": "response_received",
+    "key": "pay-001",
+    "status": "success"
+  }
+]
