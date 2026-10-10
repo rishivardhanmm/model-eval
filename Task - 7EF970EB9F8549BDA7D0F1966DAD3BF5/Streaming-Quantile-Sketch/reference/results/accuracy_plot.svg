@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 400" width="920" height="400" font-family="Segoe UI, Arial, sans-serif">
+<style>.bg{fill:#fcfcfb}.t1{fill:#0b0b0b}.t2{fill:#52514e}.grid{stroke:#e4e3df}.axis{stroke:#8a8984}.tol{stroke:#52514e} @media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.t1{fill:#f0efec}.t2{fill:#c3c2b7}.grid{stroke:#33332f}.axis{stroke:#6d6c66}.tol{stroke:#c3c2b7}}</style>
+<rect class="bg" width="920" height="400"/>
+<text class="t1" x="56" y="26" font-size="16" font-weight="600">KLL sketch vs exact quantiles: absolute error (ms), k=200, stream seed 7</text>
+<g fill="#2a78d6"><circle cx="61.0" cy="48.0" r="4.5"/></g>
+<text class="t2" x="71" y="52" font-size="12">uniform</text>
+<g fill="#eb6834"><rect x="147.0" y="44.0" width="8" height="8" rx="1"/></g>
+<text class="t2" x="161" y="52" font-size="12">skewed</text>
+<g fill="#1baf7a"><path d="M241.0,43.0 L246.0,52.0 L236.0,52.0 Z"/></g>
+<text class="t2" x="251" y="52" font-size="12">constant</text>
+<g fill="#eda100"><path d="M331.0,42.5 L336.5,48.0 L331.0,53.5 L325.5,48.0 Z"/></g>
+<text class="t2" x="341" y="52" font-size="12">sorted</text>
+<line class="tol" x1="420" y1="48" x2="444" y2="48" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text class="t2" x="450" y="52" font-size="12">tolerance 35 ms</text>
+<text class="t1" x="56.0" y="88" font-size="13" font-weight="600">p50</text>
+<line class="grid" x1="56.0" y1="352.0" x2="425.0" y2="352.0" stroke-width="1"/>
+<text class="t2" x="50.0" y="356.0" font-size="11" text-anchor="end">0</text>
+<line class="grid" x1="56.0" y1="292.6" x2="425.0" y2="292.6" stroke-width="1"/>
+<text class="t2" x="50.0" y="296.6" font-size="11" text-anchor="end">10</text>
+<line class="grid" x1="56.0" y1="233.1" x2="425.0" y2="233.1" stroke-width="1"/>
+<text class="t2" x="50.0" y="237.1" font-size="11" text-anchor="end">20</text>
+<line class="grid" x1="56.0" y1="173.7" x2="425.0" y2="173.7" stroke-width="1"/>
+<text class="t2" x="50.0" y="177.7" font-size="11" text-anchor="end">30</text>
+<line class="grid" x1="56.0" y1="114.3" x2="425.0" y2="114.3" stroke-width="1"/>
+<text class="t2" x="50.0" y="118.3" font-size="11" text-anchor="end">40</text>
+<line class="axis" x1="56.0" y1="352.0" x2="425.0" y2="352.0" stroke-width="1"/>
+<text class="t2" x="76.0" y="370.0" font-size="11" text-anchor="middle">1,000</text>
+<text class="t2" x="205.5" y="370.0" font-size="11" text-anchor="middle">10,000</text>
+<text class="t2" x="335.0" y="370.0" font-size="11" text-anchor="middle">100,000</text>
+<text class="t2" x="240.5" y="392" font-size="11" text-anchor="middle">stream length (log scale)</text>
+<line class="tol" x1="56.0" y1="144.0" x2="425.0" y2="144.0" stroke-width="1.5" stroke-dasharray="5 4"/>
+<polyline points="76.0,350.7 205.5,325.3 335.0,347.5" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round"/>
+<g fill="#2a78d6"><title>uniform, n=1,000: exact 460.691 ms, estimate 460.906 ms, error 0.216 ms</title><circle cx="76.0" cy="350.7" r="4.5"/></g>
+<g fill="#2a78d6"><title>uniform, n=10,000: exact 496.467 ms, estimate 491.982 ms, error 4.486 ms</title><circle cx="205.5" cy="325.3" r="4.5"/></g>
+<g fill="#2a78d6"><title>uniform, n=100,000: exact 499.586 ms, estimate 498.83 ms, error 0.756 ms</title><circle cx="335.0" cy="347.5" r="4.5"/></g>
+<polyline points="76.0,351.8 205.5,346.7 335.0,351.1" fill="none" stroke="#eb6834" stroke-width="2" stroke-linejoin="round"/>
+<g fill="#eb6834"><title>skewed, n=1,000: exact 61.747 ms, estimate 61.787 ms, error 0.04 ms</title><rect x="72.0" y="347.8" width="8" height="8" rx="1"/></g>
+<g fill="#eb6834"><title>skewed, n=10,000: exact 68.611 ms, estimate 67.724 ms, error 0.887 ms</title><rect x="201.5" y="342.7" width="8" height="8" rx="1"/></g>
+<g fill="#eb6834"><title>skewed, n=100,000: exact 69.232 ms, estimate 69.081 ms, error 0.151 ms</title><rect x="331.0" y="347.1" width="8" height="8" rx="1"/></g>
+<polyline points="76.0,352.0 205.5,352.0 335.0,352.0" fill="none" stroke="#1baf7a" stroke-width="2" stroke-linejoin="round"/>
+<g fill="#1baf7a"><title>constant, n=1,000: exact 250.0 ms, estimate 250.0 ms, error 0.0 ms</title><path d="M76.0,347.0 L81.0,356.0 L71.0,356.0 Z"/></g>
+<g fill="#1baf7a"><title>constant, n=10,000: exact 250.0 ms, estimate 250.0 ms, error 0.0 ms</title><path d="M205.5,347.0 L210.5,356.0 L200.5,356.0 Z"/></g>
+<g fill="#1baf7a"><title>constant, n=100,000: exact 250.0 ms, estimate 250.0 ms, error 0.0 ms</title><path d="M335.0,347.0 L340.0,356.0 L330.0,356.0 Z"/></g>
+<polyline points="76.0,337.7 205.5,347.8 335.0,349.2" fill="none" stroke="#eda100" stroke-width="2" stroke-linejoin="round"/>
+<g fill="#eda100"><title>sorted, n=1,000: exact 460.691 ms, estimate 458.289 ms, error 2.402 ms</title><path d="M76.0,332.2 L81.5,337.7 L76.0,343.2 L70.5,337.7 Z"/></g>
+<g fill="#eda100"><title>sorted, n=10,000: exact 496.467 ms, estimate 495.755 ms, error 0.713 ms</title><path d="M205.5,342.3 L211.0,347.8 L205.5,353.3 L200.0,347.8 Z"/></g>
+<g fill="#eda100"><title>sorted, n=100,000: exact 499.586 ms, estimate 499.123 ms, error 0.463 ms</title><path d="M335.0,343.7 L340.5,349.2 L335.0,354.7 L329.5,349.2 Z"/></g>
+<text class="t2" x="347.0" y="356.0" font-size="11">constant</text>
+<text class="t2" x="347.0" y="343.0" font-size="11">skewed</text>
+<text class="t2" x="347.0" y="330.0" font-size="11">sorted</text>
+<text class="t2" x="347.0" y="317.0" font-size="11">uniform</text>
+<text class="t1" x="495.0" y="88" font-size="13" font-weight="600">p95</text>
+<line class="grid" x1="495.0" y1="352.0" x2="864.0" y2="352.0" stroke-width="1"/>
+<text class="t2" x="489.0" y="356.0" font-size="11" text-anchor="end">0</text>
+<line class="grid" x1="495.0" y1="292.6" x2="864.0" y2="292.6" stroke-width="1"/>
+<text class="t2" x="489.0" y="296.6" font-size="11" text-anchor="end">10</text>
+<line class="grid" x1="495.0" y1="233.1" x2="864.0" y2="233.1" stroke-width="1"/>
+<text class="t2" x="489.0" y="237.1" font-size="11" text-anchor="end">20</text>
+<line class="grid" x1="495.0" y1="173.7" x2="864.0" y2="173.7" stroke-width="1"/>
+<text class="t2" x="489.0" y="177.7" font-size="11" text-anchor="end">30</text>
+<line class="grid" x1="495.0" y1="114.3" x2="864.0" y2="114.3" stroke-width="1"/>
+<text class="t2" x="489.0" y="118.3" font-size="11" text-anchor="end">40</text>
+<line class="axis" x1="495.0" y1="352.0" x2="864.0" y2="352.0" stroke-width="1"/>
+<text class="t2" x="515.0" y="370.0" font-size="11" text-anchor="middle">1,000</text>
+<text class="t2" x="644.5" y="370.0" font-size="11" text-anchor="middle">10,000</text>
+<text class="t2" x="774.0" y="370.0" font-size="11" text-anchor="middle">100,000</text>
+<text class="t2" x="679.5" y="392" font-size="11" text-anchor="middle">stream length (log scale)</text>
+<line class="tol" x1="495.0" y1="144.0" x2="864.0" y2="144.0" stroke-width="1.5" stroke-dasharray="5 4"/>
+<polyline points="515.0,352.0 644.5,323.9 774.0,346.7" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round"/>
+<g fill="#2a78d6"><title>uniform, n=1,000: exact 953.189 ms, estimate 953.189 ms, error 0.0 ms</title><circle cx="515.0" cy="352.0" r="4.5"/></g>
+<g fill="#2a78d6"><title>uniform, n=10,000: exact 950.866 ms, estimate 946.132 ms, error 4.734 ms</title><circle cx="644.5" cy="323.9" r="4.5"/></g>
+<g fill="#2a78d6"><title>uniform, n=100,000: exact 949.84 ms, estimate 950.733 ms, error 0.894 ms</title><circle cx="774.0" cy="346.7" r="4.5"/></g>
+<polyline points="515.0,352.0 644.5,297.3 774.0,341.3" fill="none" stroke="#eb6834" stroke-width="2" stroke-linejoin="round"/>
+<g fill="#eb6834"><title>skewed, n=1,000: exact 306.163 ms, estimate 306.163 ms, error 0.0 ms</title><rect x="511.0" y="348.0" width="8" height="8" rx="1"/></g>
+<g fill="#eb6834"><title>skewed, n=10,000: exact 301.32 ms, estimate 292.122 ms, error 9.198 ms</title><rect x="640.5" y="293.3" width="8" height="8" rx="1"/></g>
+<g fill="#eb6834"><title>skewed, n=100,000: exact 299.253 ms, estimate 301.051 ms, error 1.798 ms</title><rect x="770.0" y="337.3" width="8" height="8" rx="1"/></g>
+<polyline points="515.0,352.0 644.5,352.0 774.0,352.0" fill="none" stroke="#1baf7a" stroke-width="2" stroke-linejoin="round"/>
+<g fill="#1baf7a"><title>constant, n=1,000: exact 250.0 ms, estimate 250.0 ms, error 0.0 ms</title><path d="M515.0,347.0 L520.0,356.0 L510.0,356.0 Z"/></g>
+<g fill="#1baf7a"><title>constant, n=10,000: exact 250.0 ms, estimate 250.0 ms, error 0.0 ms</title><path d="M644.5,347.0 L649.5,356.0 L639.5,356.0 Z"/></g>
+<g fill="#1baf7a"><title>constant, n=100,000: exact 250.0 ms, estimate 250.0 ms, error 0.0 ms</title><path d="M774.0,347.0 L779.0,356.0 L769.0,356.0 Z"/></g>
+<polyline points="515.0,352.0 644.5,352.0 774.0,347.0" fill="none" stroke="#eda100" stroke-width="2" stroke-linejoin="round"/>
+<g fill="#eda100"><title>sorted, n=1,000: exact 953.189 ms, estimate 953.189 ms, error 0.0 ms</title><path d="M515.0,346.5 L520.5,352.0 L515.0,357.5 L509.5,352.0 Z"/></g>
+<g fill="#eda100"><title>sorted, n=10,000: exact 950.866 ms, estimate 950.866 ms, error 0.0 ms</title><path d="M644.5,346.5 L650.0,352.0 L644.5,357.5 L639.0,352.0 Z"/></g>
+<g fill="#eda100"><title>sorted, n=100,000: exact 949.84 ms, estimate 950.676 ms, error 0.837 ms</title><path d="M774.0,341.5 L779.5,347.0 L774.0,352.5 L768.5,347.0 Z"/></g>
+<text class="t2" x="786.0" y="356.0" font-size="11">constant</text>
+<text class="t2" x="786.0" y="343.0" font-size="11">sorted</text>
+<text class="t2" x="786.0" y="330.0" font-size="11">uniform</text>
+<text class="t2" x="786.0" y="317.0" font-size="11">skewed</text>
+</svg>

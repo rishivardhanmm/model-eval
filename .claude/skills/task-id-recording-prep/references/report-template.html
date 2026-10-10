@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{TASK_TITLE}} — Task Report</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --panel:#ffffff; --ink:#1b1f24; --sub:#5b6472;
+    --line:#e2e5ea; --accent:#3457d5; --accent-soft:#eef1fd;
+    --good:#1a7f4e; --warn:#b4530a; --bad:#b3261e;
+    --code-bg:#1e2228; --code-ink:#e7eaf0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Segoe UI',Calibri,Arial,sans-serif;
+    line-height:1.55;
+  }
+  header{
+    background:linear-gradient(135deg,#2a3f8f,#3457d5);
+    color:#fff; padding:28px 36px;
+  }
+  header h1{margin:0 0 6px; font-size:1.6rem;}
+  header p{margin:0; opacity:.9; font-size:.92rem;}
+  header .meta{margin-top:10px; font-size:.8rem; opacity:.8;}
+  .wrap{max-width:980px; margin:0 auto; padding:0 20px 60px;}
+  .tabs{
+    display:flex; gap:4px; margin-top:-1px; position:sticky; top:0;
+    background:var(--bg); padding:16px 0 0; z-index:5;
+  }
+  .tab-btn{
+    flex:1; padding:12px 14px; border:1px solid var(--line);
+    border-bottom:none; background:var(--panel); color:var(--sub);
+    font-size:.95rem; font-weight:600; cursor:pointer;
+    border-radius:10px 10px 0 0; transition:.15s;
+  }
+  .tab-btn:hover{color:var(--accent);}
+  .tab-btn.active{color:var(--accent); background:var(--panel); box-shadow:0 -2px 0 var(--accent) inset;}
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:0 0 12px 12px;
+    padding:28px 32px; display:none;
+  }
+  .panel.active{display:block;}
+  h2{font-size:1.25rem; margin-top:0; color:var(--accent);}
+  h3{font-size:1.02rem; margin-top:28px; color:var(--ink);}
+  .pill{
+    display:inline-block; font-size:.72rem; font-weight:700; letter-spacing:.03em;
+    padding:3px 9px; border-radius:999px; background:var(--accent-soft); color:var(--accent);
+    text-transform:uppercase; margin-right:6px;
+  }
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:.92rem;}
+  th,td{border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top;}
+  th{background:var(--accent-soft); color:var(--accent);}
+  code, pre{font-family:Consolas,'Courier New',monospace;}
+  pre{
+    background:var(--code-bg); color:var(--code-ink); padding:14px 16px;
+    border-radius:8px; overflow-x:auto; font-size:.84rem; line-height:1.5;
+  }
+  code.inline{background:var(--accent-soft); color:var(--accent); padding:1px 6px; border-radius:4px;}
+  ul, ol{padding-left:22px;}
+  li{margin-bottom:6px;}
+  .timeline{list-style:none; padding:0; margin:14px 0;}
+  .timeline li{
+    position:relative; padding:10px 14px 10px 86px; border-left:3px solid var(--accent);
+    margin-bottom:6px; background:#fafbfd; border-radius:0 8px 8px 0;
+  }
+  .timeline li .t{
+    position:absolute; left:0; top:10px; width:76px; text-align:right;
+    font-weight:700; color:var(--accent); font-size:.82rem; padding-right:10px;
+  }
+  .flag-start{color:var(--good); font-weight:700;}
+  .flag-end{color:var(--bad); font-weight:700;}
+  blockquote{
+    border-left:4px solid var(--accent); margin:0; padding:4px 0 4px 16px;
+    color:var(--ink); background:#fafbfd; border-radius:0 6px 6px 0; white-space:pre-wrap;
+    font-size:.92rem;
+  }
+  .note{
+    border:1px dashed var(--line); border-radius:8px; padding:12px 14px; font-size:.86rem;
+    color:var(--sub); background:#fcfcfd; margin-top:10px;
+  }
+  footer{text-align:center; color:var(--sub); font-size:.78rem; padding:20px;}
+  .block-title{
+    margin-top:30px; padding:6px 10px; background:var(--accent-soft); color:var(--accent);
+    border-radius:6px; font-weight:700; font-size:.92rem;
+  }
+  /* Comment highlighting inside code blocks, diff-style */
+  .cmt{ color:#f2a65a; }
+  .cmt-line{
+    display:block; background:rgba(180,83,10,.22);
+    border-left:3px solid var(--warn); margin:0 0 0 -16px; padding-left:13px;
+  }
+  .doc{ color:#9fb3c8; font-style:italic; }
+  .tabs{flex-wrap:wrap;}
+  .tab-btn{flex:1 1 120px; padding:10px 8px; font-size:.88rem;}
+  @media (max-width:640px){ .panel{padding:18px 16px;} table{display:block; overflow-x:auto;} }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>{{TASK_TITLE}} — Task Report</h1>
+  <p>{{ONE_LINE_SUMMARY}}</p>
+  <div class="meta">Task - {{TASK_ID}} &nbsp;&middot;&nbsp; Prepared: {{DATE}} &nbsp;&middot;&nbsp; Status: {{STATUS}}</div>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('task')">Task</button>
+    <button class="tab-btn" onclick="showTab('analysis')">Analysis</button>
+    <button class="tab-btn" onclick="showTab('plan')">Plan</button>
+    <button class="tab-btn" onclick="showTab('script')">Script</button>
+    <!-- Omit the Notes button+panel if no deliverable is typed by hand into an app (Notes, Word, ...) -->
+    <button class="tab-btn" onclick="showTab('notes')">Notes</button>
+    <!-- Omit the Checks button+panel if the task has no "How I will check the result" section -->
+    <button class="tab-btn" onclick="showTab('checks')">Checks</button>
+    <!-- Omit the Code Walkthrough button+panel if the task has no code deliverable -->
+    <button class="tab-btn" onclick="showTab('code')">Code Walkthrough</button>
+  </div>
+
+  <!-- TASK (first tab, verbatim) -->
+  <div id="task" class="panel active">
+    <h2>Task &mdash; verbatim</h2>
+    <p>Reproduced exactly as given, with no additions or omissions.</p>
+
+    <h3>Goal</h3>
+    <blockquote>{{VERBATIM_GOAL}}</blockquote>
+
+    <h3>Starting point</h3>
+    <blockquote>{{VERBATIM_STARTING_POINT}}</blockquote>
+
+    <h3>Apps and tools</h3>
+    <!-- Copy any line above the app list (e.g. "1. Multiple apps") as a <p>. One row per declared app. -->
+    <table>
+      <tr><th>#</th><th>Declared app</th><th>Edition / License</th><th>App-use scope</th><th>App-use record</th></tr>
+      <tr><td>1</td><td>{{APP_1}}</td><td>{{APP_1_EDITION}}</td><td>{{APP_1_SCOPE}}</td><td>{{APP_1_RECORD}}</td></tr>
+    </table>
+
+    <h3>Deliverable</h3>
+    <blockquote>{{VERBATIM_DELIVERABLE}}</blockquote>
+
+    <!-- Include only if the task text has a "How I will check the result" section; otherwise delete this h3+blockquote. -->
+    <h3>How I will check the result</h3>
+    <blockquote>{{VERBATIM_CHECK}}</blockquote>
+
+    <h3>Prior work and reuse</h3>
+    <blockquote>{{VERBATIM_PRIOR_WORK}}</blockquote>
+  </div>
+
+  <!-- ANALYSIS -->
+  <div id="analysis" class="panel">
+    <h2>Analysis &mdash; what this task is</h2>
+    <p><span class="pill">Context</span> {{CONTEXT_PARAGRAPH}}</p>
+
+    <h3>Deliverables</h3>
+    <table>
+      <tr><th>#</th><th>Deliverable</th><th>Form</th><th>Made in</th></tr>
+      <!-- One row per deliverable named in the task; no more, no fewer -->
+      <tr><td>1</td><td>{{DELIVERABLE_1}}</td><td>{{FORM_1}}</td><td>{{APP_FOR_1}}</td></tr>
+    </table>
+
+    <h3>Inputs (starting point)</h3>
+    <!-- Table of input files: file, rows, columns, what is in it -->
+    {{INPUTS_TABLE}}
+
+    <h3>Key definitions</h3>
+    <!-- Terms the numbers depend on (e.g. cohort, retained, threshold). Delete if none. -->
+    {{DEFINITIONS_TABLE}}
+
+    <h3>Results at a glance</h3>
+    <!-- The verified headline numbers the user should expect on screen. Delete if the task produces none. -->
+    {{RESULTS_SUMMARY}}
+
+    <!-- 2+ declared apps: heading "Why it is structured across multiple apps".
+         1 declared app: heading "How the work flows in <App>" (which files/panels/terminal steps, in order). -->
+    <h3>{{APP_FLOW_HEADING}}</h3>
+    <p>{{APP_FLOW_TEXT}}</p>
+  </div>
+
+  <!-- PLAN -->
+  <div id="plan" class="panel">
+    <h2>Plan &mdash; build order and prep</h2>
+
+    <h3>Build order (each step feeds the next)</h3>
+    <table>
+      <tr><th>Phase</th><th>App</th><th>Action</th><th>Output</th></tr>
+      <tr><td>1</td><td>{{PHASE_1_APP}}</td><td>{{PHASE_1_ACTION}}</td><td>{{PHASE_1_OUTPUT}}</td></tr>
+    </table>
+
+    <h3>Pre-staged vs. created on camera</h3>
+    <table>
+      <tr><th>Pre-staged (already in folder)</th><th>Created on camera</th></tr>
+      <tr><td>{{PRESTAGED_1}}</td><td>{{ON_CAMERA_1}}</td></tr>
+    </table>
+
+    <h3>Before pressing record</h3>
+    <ul>
+      <li>{{PREP_STEP_1}}</li>
+    </ul>
+  </div>
+
+  <!-- SCRIPT -->
+  <div id="script" class="panel">
+    <h2>Script &mdash; {{TIME_BUDGET}} recording</h2>
+
+    <h3>Start of recording</h3>
+    <ol>
+      <li>Close anything with real or unrelated personal data; only the sample files on screen.</li>
+      <li>Arrange windows so the capture area shows one full app at a time.</li>
+      <li><span class="flag-start">Press record.</span> Pause one second, then state the task name and goal.</li>
+    </ol>
+
+    <h3>On-camera flow</h3>
+    <ul class="timeline">
+      <li><span class="t">{{TIME_RANGE_1}}</span><strong>{{STEP_TITLE_1}}</strong> {{STEP_DESCRIPTION_1}}</li>
+    </ul>
+
+    <h3>End of recording</h3>
+    <ol>
+      <li>Say a clear closing line.</li>
+      <li><span class="flag-end">Stop recording</span> one second after it.</li>
+      <li>Save the recording with a clear filename.</li>
+      <li>Confirm every artifact persisted (reopen each one quickly).</li>
+      <li>Scrub the first and last 10 seconds for clean in/out points.</li>
+    </ol>
+
+    <div class="note">{{TIMING_NOTE}}</div>
+  </div>
+
+  <!-- NOTES (hand-typed deliverable explained) -->
+  <div id="notes" class="panel">
+    <h2>{{NOTES_APP}} &mdash; the note explained</h2>
+    <p>{{NOTES_INTRO}}</p>
+
+    <table>
+      <tr><th>Section</th><th>What it says</th><th>Why it is there</th><th>Source on screen</th></tr>
+      <tr><td>{{NOTE_SECTION_1}}</td><td>{{NOTE_SAYS_1}}</td><td>{{NOTE_WHY_1}}</td><td>{{NOTE_SOURCE_1}}</td></tr>
+    </table>
+
+    <h3>Draft to retype (from {{DRAFT_PATH}})</h3>
+    <pre style="white-space:pre-wrap;"><code>{{ESCAPED_DRAFT_TEXT}}</code></pre>
+  </div>
+
+  <!-- CHECKS -->
+  <div id="checks" class="panel">
+    <h2>Checks &mdash; how each acceptance check is proven</h2>
+    <table>
+      <tr><th>Check (from the task)</th><th>Exact proof</th></tr>
+      <!-- One row per clause of "How I will check the result"; proof = printed line, query output, column or file -->
+      <tr><td>{{CHECK_1}}</td><td>{{PROOF_1}}</td></tr>
+    </table>
+
+    <h3>Expected values / hand-check cases</h3>
+    {{EXPECTED_TABLES}}
+
+    <h3>Thresholds (fixed before any results were run)</h3>
+    <ul>
+      <li>{{THRESHOLD_1}}</li>
+    </ul>
+
+    <h3>Verified failure cases</h3>
+    <table>
+      <tr><th>Planted problem</th><th>Result</th></tr>
+      <tr><td>{{FAILURE_CASE_1}}</td><td>{{FAILURE_RESULT_1}}</td></tr>
+    </table>
+  </div>
+
+  <!-- CODE WALKTHROUGH -->
+  <div id="code" class="panel">
+    <h2>Code Walkthrough</h2>
+    <p>Each script appears as a clean deliverable and an annotated copy for narration, verified to produce byte-identical output.</p>
+
+    <!-- Order the files the way they are built on camera (e.g. schema -> loader -> queries -> chart).
+         Non-Python files (SQL etc.) go in a plain pre/code block without the class. Repeat the clean+annotated pair once
+         per Python file; every Python code element must carry class="py-src" (the colorizer selects on it). -->
+    <h3>1. {{SCRIPT_TITLE_1}}</h3>
+    <div class="block-title">Clean &mdash; {{SCRIPT_PATH_CLEAN}}</div>
+    <pre style="max-height:420px; overflow:auto;"><code class="py-src">{{ESCAPED_CLEAN_SOURCE}}</code></pre>
+
+    <div class="block-title">Annotated &mdash; {{SCRIPT_PATH_ANNOTATED}}</div>
+    <pre style="max-height:650px; overflow:auto;"><code class="py-src">{{ESCAPED_ANNOTATED_SOURCE}}</code></pre>
+
+    <div class="note">{{NARRATION_TIP}}</div>
+  </div>
+</div>
+
+<footer>{{TASK_TITLE}} &mdash; Task Report &middot; generated for planning the recorded walkthrough &middot; Task - {{TASK_ID}}</footer>
+
+<script>
+  function showTab(id){
+    document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+    var btns = document.querySelectorAll('.tab-btn');
+    for (var i = 0; i < btns.length; i++) {
+      if (btns[i].getAttribute('onclick').indexOf(id) !== -1) {
+        btns[i].classList.add('active');
+      }
+    }
+  }
+
+  function escChar(c){
+    if (c === '&') return '&amp;';
+    if (c === '<') return '&lt;';
+    if (c === '>') return '&gt;';
+    return c;
+  }
+  function escStr(s){
+    var out = '';
+    for (var k = 0; k < s.length; k++) out += escChar(s[k]);
+    return out;
+  }
+
+  // Minimal Python-aware colorizer: walks the raw source text once, treats
+  // anything inside a string literal (single, double, or triple-quoted) as
+  // plain code so a '#' inside a string is never mistaken for a comment,
+  // then wraps real comments/docstrings for display.
+  function colorizePython(src){
+    var i = 0, n = src.length, out = '';
+    while (i < n) {
+      var c = src[i];
+      if (c === '#') {
+        var j = src.indexOf('\n', i);
+        if (j === -1) j = n;
+        out += '<span class="cmt">' + escStr(src.slice(i, j)) + '</span>';
+        i = j;
+        continue;
+      }
+      if ((c === '"' || c === "'") && src[i+1] === c && src[i+2] === c) {
+        var q = c + c + c;
+        var j2 = src.indexOf(q, i + 3);
+        j2 = (j2 === -1) ? n : j2 + 3;
+        out += '<span class="doc">' + escStr(src.slice(i, j2)) + '</span>';
+        i = j2;
+        continue;
+      }
+      if (c === '"' || c === "'") {
+        var q2 = c, j3 = i + 1;
+        while (j3 < n && src[j3] !== q2) { j3 += (src[j3] === '\\') ? 2 : 1; }
+        j3 = Math.min(j3 + 1, n);
+        out += escStr(src.slice(i, j3));
+        i = j3;
+        continue;
+      }
+      out += escChar(c);
+      i += 1;
+    }
+    var lines = out.split('\n');
+    for (var li = 0; li < lines.length; li++) {
+      if (/^\s*<span class="cmt">/.test(lines[li])) {
+        lines[li] = lines[li].replace(/^(\s*)<span class="cmt">/, '$1<span class="cmt cmt-line">');
+      }
+    }
+    return lines.join('\n');
+  }
+
+  document.querySelectorAll('code.py-src').forEach(function(el){
+    el.innerHTML = colorizePython(el.textContent);
+  });
+</script>
+
+</body>
+</html>

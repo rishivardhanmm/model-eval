@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Subscription Cohort Retention — Task Report</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --panel:#ffffff; --ink:#1b1f24; --sub:#5b6472;
+    --line:#e2e5ea; --accent:#3457d5; --accent-soft:#eef1fd;
+    --good:#1a7f4e; --warn:#b4530a; --bad:#b3261e;
+    --code-bg:#1e2228; --code-ink:#e7eaf0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Segoe UI',Calibri,Arial,sans-serif;
+    line-height:1.55;
+  }
+  header{
+    background:linear-gradient(135deg,#2a3f8f,#3457d5);
+    color:#fff; padding:28px 36px;
+  }
+  header h1{margin:0 0 6px; font-size:1.6rem;}
+  header p{margin:0; opacity:.9; font-size:.92rem;}
+  header .meta{margin-top:10px; font-size:.8rem; opacity:.8;}
+  .wrap{max-width:980px; margin:0 auto; padding:0 20px 60px;}
+  .tabs{
+    display:flex; gap:4px; margin-top:-1px; position:sticky; top:0;
+    background:var(--bg); padding:16px 0 0; z-index:5;
+  }
+  .tab-btn{
+    flex:1; padding:12px 14px; border:1px solid var(--line);
+    border-bottom:none; background:var(--panel); color:var(--sub);
+    font-size:.95rem; font-weight:600; cursor:pointer;
+    border-radius:10px 10px 0 0; transition:.15s;
+  }
+  .tab-btn:hover{color:var(--accent);}
+  .tab-btn.active{color:var(--accent); background:var(--panel); box-shadow:0 -2px 0 var(--accent) inset;}
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:0 0 12px 12px;
+    padding:28px 32px; display:none;
+  }
+  .panel.active{display:block;}
+  h2{font-size:1.25rem; margin-top:0; color:var(--accent);}
+  h3{font-size:1.02rem; margin-top:28px; color:var(--ink);}
+  .pill{
+    display:inline-block; font-size:.72rem; font-weight:700; letter-spacing:.03em;
+    padding:3px 9px; border-radius:999px; background:var(--accent-soft); color:var(--accent);
+    text-transform:uppercase; margin-right:6px;
+  }
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:.92rem;}
+  th,td{border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top;}
+  th{background:var(--accent-soft); color:var(--accent);}
+  code, pre{font-family:Consolas,'Courier New',monospace;}
+  pre{
+    background:var(--code-bg); color:var(--code-ink); padding:14px 16px;
+    border-radius:8px; overflow-x:auto; font-size:.84rem; line-height:1.5;
+  }
+  code.inline{background:var(--accent-soft); color:var(--accent); padding:1px 6px; border-radius:4px;}
+  ul, ol{padding-left:22px;}
+  li{margin-bottom:6px;}
+  .timeline{list-style:none; padding:0; margin:14px 0;}
+  .timeline li{
+    position:relative; padding:10px 14px 10px 86px; border-left:3px solid var(--accent);
+    margin-bottom:6px; background:#fafbfd; border-radius:0 8px 8px 0;
+  }
+  .timeline li .t{
+    position:absolute; left:0; top:10px; width:76px; text-align:right;
+    font-weight:700; color:var(--accent); font-size:.82rem; padding-right:10px;
+  }
+  .flag-start{color:var(--good); font-weight:700;}
+  .flag-end{color:var(--bad); font-weight:700;}
+  blockquote{
+    border-left:4px solid var(--accent); margin:0; padding:4px 0 4px 16px;
+    color:var(--ink); background:#fafbfd; border-radius:0 6px 6px 0; white-space:pre-wrap;
+    font-size:.92rem;
+  }
+  .note{
+    border:1px dashed var(--line); border-radius:8px; padding:12px 14px; font-size:.86rem;
+    color:var(--sub); background:#fcfcfd; margin-top:10px;
+  }
+  footer{text-align:center; color:var(--sub); font-size:.78rem; padding:20px;}
+  .block-title{
+    margin-top:30px; padding:6px 10px; background:var(--accent-soft); color:var(--accent);
+    border-radius:6px; font-weight:700; font-size:.92rem;
+  }
+  /* Comment highlighting inside code blocks, diff-style */
+  .cmt{ color:#f2a65a; }
+  .cmt-line{
+    display:block; background:rgba(180,83,10,.22);
+    border-left:3px solid var(--warn); margin:0 0 0 -16px; padding-left:13px;
+  }
+  .doc{ color:#9fb3c8; font-style:italic; }
+  .tabs{flex-wrap:wrap;}
+  .tab-btn{flex:1 1 120px; padding:10px 8px; font-size:.88rem;}
+  @media (max-width:640px){ .panel{padding:18px 16px;} table{display:block; overflow-x:auto;} }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Subscription Cohort Retention — Task Report</h1>
+  <p>Build a compact SQLite model from three synthetic CSVs, compare signup-cohort retention and plan changes in DBeaver, chart the verified result, and write the analyst note.</p>
+  <div class="meta">Task - CC8EF7496379488FA9B4FC792BBCBADC &nbsp;&middot;&nbsp; Prepared: 2026-10-11 &nbsp;&middot;&nbsp; Status: Ready to record</div>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('task')">Task</button>
+    <button class="tab-btn" onclick="showTab('analysis')">Analysis</button>
+    <button class="tab-btn" onclick="showTab('plan')">Plan</button>
+    <button class="tab-btn" onclick="showTab('script')">Script</button>
+    <button class="tab-btn" onclick="showTab('notes')">Notes</button>
+    <button class="tab-btn" onclick="showTab('checks')">Checks</button>
+    <button class="tab-btn" onclick="showTab('code')">Code Walkthrough</button>
+  </div>
+
+  <div id="task" class="panel active">
+    <h2>Task &mdash; verbatim</h2>
+    <p>Reproduced exactly as given, with no additions or omissions.</p>
+
+    <h3>Goal</h3>
+    <blockquote>As a data engineer supporting a subscription product analyst, I will build a compact SQLite model from fictional account, plan, and event records so the analyst can answer retention and plan-change questions with readable cohort queries. I will define the schema, load the synthetic files, compare cohort retention, and explain the pattern and its limits.</blockquote>
+
+    <h3>Starting point</h3>
+    <blockquote>Three small synthetic CSV files for accounts, plans, and dated events; no database or schema.</blockquote>
+
+    <h3>Apps and tools</h3>
+    <p>1. Multiple apps</p>
+    <table>
+      <tr><th>#</th><th>Declared app</th><th>Edition / License</th><th>App-use scope</th><th>App-use record</th></tr>
+      <tr><td>1</td><td>Visual Studio Code</td><td>Visual Studio Code (standard Microsoft-branded build), current version; free</td><td>Used as a code editor for professional task recordings created as training data for an AI system. Tasks involve writing, editing, and running code (e.g., TypeScript/Node.js), using the integrated terminal, and working with version control, to produce recorded demonstrations of software engineering workflows. Running the standard Microsoft-distributed build free of charge under its product license; no paid Visual Studio subscription or enterprise license is involved. Screen recordings of this usage are delivered as training material under the project&#x27;s existing commercial arrangement.</td><td>cf81fae7-e89c-42dc-b1f1-e608c3996676</td></tr>
+      <tr><td>2</td><td>DBeaver</td><td>Community Edition (CE), current version; free</td><td>Used as a SQL database client for professional task recordings created as training data for an AI system. Tasks involve writing and running SQL queries against locally seeded sample databases (SQLite/Postgres-style) to investigate data, diagnose issues, and export results. Running Community Edition installed locally under its own Apache-2.0 license; no paid DBeaver account or subscription is used. Screen recordings of this usage are delivered as training material under the project&#x27;s existing commercial arrangement.</td><td>f6809442-28e3-414f-bf4f-8002eb3ad136</td></tr>
+      <tr><td>3</td><td>Notes.app</td><td>Bundled with macOS 27 Golden Gate (27.0.1); free</td><td>Quick note-taking, checklists, document scanning and iCloud-synced notes across Apple devices.</td><td>b82af9c6-9b03-4410-84b5-badbc38b741f</td></tr>
+    </table>
+
+    <h3>Deliverable</h3>
+    <blockquote>In Visual Studio Code, create schema.sql and a small loader for the three synthetic CSV files. Open the resulting SQLite database in DBeaver to inspect its tables, run cohort and plan-change queries, and export the cohort summary. Use a Python script in Visual Studio Code to chart the verified results. In Notes, record the cohort definition, assumptions, key takeaway, and limitation for the product analyst. Deliver the database, SQL and loader files, exported results, retention chart, and concise interpretation note.</blockquote>
+
+    <h3>How I will check the result</h3>
+    <blockquote>Enable SQLite foreign-key checks and reconcile imported row counts to the three CSV files. In DBeaver, compare cohort counts and retained/cancelled examples with hand-calculated cases. Confirm the exported results match the query output and chart values; record the cohort definition and limitations in Notes.</blockquote>
+
+    <h3>Prior work and reuse</h3>
+    <blockquote>New task. No prior task is being continued. New task. No prior task is being continued.</blockquote>
+  </div>
+
+  <div id="analysis" class="panel">
+    <h2>Analysis &mdash; what this task is</h2>
+    <p><span class="pill">Context</span> A subscription product analyst needs to answer two questions with readable SQL: <em>how does retention compare across signup cohorts?</em> and <em>what happens to accounts that change plan?</em> You turn three synthetic CSVs into a foreign-key-checked SQLite model, query it in DBeaver, chart the verified cohort summary, and write the pattern and its limits in Notes.</p>
+
+    <h3>Deliverables (all six named in the task)</h3>
+    <table>
+      <tr><th>#</th><th>Deliverable</th><th>Form</th><th>Made in</th></tr>
+      <tr><td>1</td><td>Database</td><td><code class="inline">subscriptions.db</code> &mdash; built by the loader on camera</td><td>VS Code terminal</td></tr>
+      <tr><td>2</td><td>SQL files</td><td><code class="inline">sql/schema.sql</code> + <code class="inline">checks.sql</code>, <code class="inline">cohort_summary.sql</code>, <code class="inline">plan_change_queries.sql</code></td><td>VS Code &rarr; run in DBeaver</td></tr>
+      <tr><td>3</td><td>Loader</td><td><code class="inline">loader/load_data.py</code></td><td>VS Code</td></tr>
+      <tr><td>4</td><td>Exported results</td><td><code class="inline">exports/cohort_summary.csv</code></td><td>DBeaver export</td></tr>
+      <tr><td>5</td><td>Retention chart</td><td><code class="inline">chart/retention_chart.svg</code> from <code class="inline">chart/chart_retention.py</code></td><td>VS Code (Python)</td></tr>
+      <tr><td>6</td><td>Interpretation note</td><td>Notes.app note &mdash; cohort definition, assumptions, key takeaway, limitation</td><td>Notes</td></tr>
+    </table>
+
+    <h3>Inputs (starting point)</h3>
+    <table>
+      <tr><th>File</th><th>Rows</th><th>Columns</th><th>What is in it</th></tr>
+      <tr><td><code class="inline">data/plans.csv</code></td><td>3</td><td>plan_id, plan_name, monthly_price_usd</td><td>Basic $9, Pro $29, Team $79</td></tr>
+      <tr><td><code class="inline">data/accounts.csv</code></td><td>30</td><td>account_id, account_name, signup_date, signup_plan_id</td><td>10 fictional signups each in Jan, Feb, Mar 2026</td></tr>
+      <tr><td><code class="inline">data/events.csv</code></td><td>20</td><td>event_id, account_id, event_date, event_type, from_plan_id, to_plan_id</td><td>6 upgrades, 3 downgrades, 11 cancels; data runs to 2026-06-30</td></tr>
+    </table>
+
+    <h3>Data model</h3>
+    <pre><code>plans (plan_id PK)
+  &uarr; signup_plan_id
+accounts (account_id PK, signup_date)          &larr; one row per account; cohort anchor
+  &uarr; account_id
+events (event_id PK, event_date, event_type)   &larr; upgrade | downgrade | cancel
+  from_plan_id &rarr; plans,  to_plan_id &rarr; plans (NULL only for cancel)</code></pre>
+
+    <h3>Key definitions</h3>
+    <table>
+      <tr><th>Term</th><th>Definition</th></tr>
+      <tr><td>Cohort</td><td>Calendar month of <code class="inline">accounts.signup_date</code> (2026-01, 2026-02, 2026-03)</td></tr>
+      <tr><td>Retained at day N</td><td>No cancel event dated before <code class="inline">signup_date + N days</code>; checkpoints N = 30, 60, 90</td></tr>
+      <tr><td>Plan change</td><td>An upgrade or downgrade event; it is <em>not</em> churn</td></tr>
+      <tr><td>Plan path</td><td>upgraded (any upgrade) &rarr; downgraded (any downgrade, no upgrade) &rarr; no change</td></tr>
+    </table>
+
+    <h3>Results at a glance</h3>
+    <table>
+      <tr><th>Cohort</th><th>Accounts</th><th>30d</th><th>60d</th><th>90d</th></tr>
+      <tr><td>2026-01</td><td>10</td><td>100%</td><td>80%</td><td><strong>80%</strong></td></tr>
+      <tr><td>2026-02</td><td>10</td><td>90%</td><td>70%</td><td><strong>60%</strong></td></tr>
+      <tr><td>2026-03</td><td>10</td><td>90%</td><td>80%</td><td><strong>70%</strong></td></tr>
+    </table>
+    <p>Plan path, 90-day retention: upgraded 5/5 (100%), downgraded 2/3 (66.7%), no change 14/22 (63.6%).</p>
+
+    <h3>Why three apps</h3>
+    <p>VS Code builds the model and draws the chart (files + terminal). DBeaver is the analyst&rsquo;s view: inspect tables, run queries, export. Notes holds the short human-readable conclusion for the analyst.</p>
+  </div>
+
+  <div id="plan" class="panel">
+    <h2>Plan &mdash; build order and prep</h2>
+
+    <h3>Build order (each step feeds the next)</h3>
+    <table>
+      <tr><th>Phase</th><th>App</th><th>Action</th><th>Output</th></tr>
+      <tr><td>1</td><td>VS Code</td><td>Write <code class="inline">schema.sql</code> (3 tables, FKs, CHECKs)</td><td>Schema file</td></tr>
+      <tr><td>2</td><td>VS Code</td><td>Write + run <code class="inline">load_data.py</code></td><td><code class="inline">subscriptions.db</code> + 6 PASS lines</td></tr>
+      <tr><td>3</td><td>DBeaver</td><td>Connect, inspect tables, run <code class="inline">checks.sql</code></td><td>FK = 1, counts 3/30/20, hand-check flags</td></tr>
+      <tr><td>4</td><td>DBeaver</td><td>Run <code class="inline">cohort_summary.sql</code>, export CSV</td><td><code class="inline">exports/cohort_summary.csv</code></td></tr>
+      <tr><td>5</td><td>DBeaver</td><td>Run <code class="inline">plan_change_queries.sql</code></td><td>Plan changes + retention by plan path</td></tr>
+      <tr><td>6</td><td>VS Code</td><td>Write + run <code class="inline">chart_retention.py</code></td><td><code class="inline">retention_chart.svg</code> + 2 PASS lines</td></tr>
+      <tr><td>7</td><td>Notes</td><td>Type the interpretation note</td><td>Notes note</td></tr>
+    </table>
+
+    <h3>Pre-staged vs. created on camera</h3>
+    <table>
+      <tr><th>Pre-staged (already in folder)</th><th>Created on camera</th></tr>
+      <tr><td>3 CSVs in <code class="inline">data/</code></td><td><code class="inline">sql/schema.sql</code> (typed live)</td></tr>
+      <tr><td><code class="inline">sql/checks.sql</code>, <code class="inline">cohort_summary.sql</code>, <code class="inline">plan_change_queries.sql</code></td><td><code class="inline">loader/load_data.py</code> (pasted section by section)</td></tr>
+      <tr><td>Empty <code class="inline">exports/</code> folder</td><td><code class="inline">chart/chart_retention.py</code> (pasted section by section)</td></tr>
+      <tr><td><code class="inline">notes/analyst_note_draft.txt</code> (reference only)</td><td><code class="inline">subscriptions.db</code>, export CSV, chart SVG, Notes note</td></tr>
+    </table>
+
+    <h3>Before pressing record</h3>
+    <ul>
+      <li>Copy <code class="inline">Subscription-Cohort-Retention/</code> to the Mac, open it in VS Code. <code class="inline">python3 --version</code> &ge; 3.8. No pip installs (standard library only).</li>
+      <li>Move <code class="inline">sql/schema.sql</code>, <code class="inline">loader/load_data.py</code>, <code class="inline">chart/chart_retention.py</code> to a reference folder <em>outside</em> the project; keep the <code class="inline">*_annotated.py</code> copies on a second screen.</li>
+      <li>Delete any rehearsal <code class="inline">subscriptions.db</code>, <code class="inline">exports/cohort_summary.csv</code>, <code class="inline">retention_chart.svg</code>. Create <code class="inline">exports/</code> if missing (git drops empty folders).</li>
+      <li>DBeaver CE: create and delete a throwaway SQLite connection once so the driver download prompt never appears on camera.</li>
+      <li>Notes.app: open a new blank note; have the draft readable on the second screen.</li>
+    </ul>
+  </div>
+
+  <div id="script" class="panel">
+    <h2>Script &mdash; ~18 minute recording</h2>
+
+    <h3>Start of recording</h3>
+    <ol>
+      <li>Close anything with real or unrelated personal data; only the sample files on screen.</li>
+      <li>Arrange windows so the capture area shows one full app at a time.</li>
+      <li><span class="flag-start">Press record.</span> Pause one second, then state the task name and goal.</li>
+    </ol>
+
+    <h3>On-camera flow</h3>
+    <ul class="timeline">
+      <li><span class="t">0:00&ndash;1:00</span><strong>Intro + inputs.</strong> State the goal. Open the three CSVs; point out <code class="inline">plan_id</code>, <code class="inline">account_id</code> and the event types.</li>
+      <li><span class="t">1:00&ndash;4:00</span><strong>Create <code class="inline">sql/schema.sql</code>.</strong> Three tables, <code class="inline">REFERENCES</code>, CHECKs on dates and event type, cancel has no <code class="inline">to_plan_id</code>. Say: SQLite enforces FKs only when the connection turns them on.</li>
+      <li><span class="t">4:00&ndash;7:00</span><strong>Create <code class="inline">loader/load_data.py</code>.</strong> Narrate: FK pragma before inserts &rarr; parents first &rarr; empty cell = NULL &rarr; reconcile counts + <code class="inline">foreign_key_check</code>.</li>
+      <li><span class="t">7:00&ndash;8:00</span><strong>Run the loader.</strong> <code class="inline">python3 loader/load_data.py</code> &rarr; read the six PASS lines. Cross-check <code class="inline">wc -l data/*.csv</code> = 4 / 31 / 21 (header included).</li>
+      <li><span class="t">8:00&ndash;9:30</span><strong>DBeaver: connect + inspect.</strong> New connection &rarr; SQLite &rarr; <code class="inline">subscriptions.db</code>. Show columns, foreign keys (Properties or ER Diagram) and sample rows.</li>
+      <li><span class="t">9:30&ndash;11:00</span><strong>Run <code class="inline">checks.sql</code>.</strong> <code class="inline">PRAGMA foreign_keys = ON</code> &rarr; 1; <code class="inline">foreign_key_check</code> &rarr; no rows; counts 3/30/20; then the two hand-check queries (see Checks tab).</li>
+      <li><span class="t">11:00&ndash;13:00</span><strong>Cohort query + export.</strong> Run <code class="inline">cohort_summary.sql</code>, compare to hand-calculated values. Export &rarr; CSV &rarr; <code class="inline">exports/</code>, file <code class="inline">cohort_summary</code>, UTF-8, header <em>top</em> + <em>label</em>, plain numbers.</li>
+      <li><span class="t">13:00&ndash;14:30</span><strong>Plan-change queries.</strong> Run the three queries: change list, changes per cohort, retention by plan path (5/5, 2/3, 14/22).</li>
+      <li><span class="t">14:30&ndash;16:00</span><strong>Chart in VS Code.</strong> Create + run <code class="inline">python3 chart/chart_retention.py</code> &rarr; two PASS lines + values. Open the SVG as an image (Reopen Editor With &rarr; Image Preview, or a browser); read 80 / 70 / 60 against DBeaver.</li>
+      <li><span class="t">16:00&ndash;17:40</span><strong>Notes.</strong> Type the note (see Notes tab), checking each number against the screen.</li>
+      <li><span class="t">17:40&ndash;18:00</span><strong>Wrap.</strong> List the deliverables: database, SQL and loader files, export, chart, note.</li>
+    </ul>
+
+    <h3>End of recording</h3>
+    <ol>
+      <li>Say a clear closing line.</li>
+      <li><span class="flag-end">Stop recording</span> one second after it.</li>
+      <li>Save the recording with a clear filename.</li>
+      <li>Confirm every artifact persisted: <code class="inline">subscriptions.db</code>, the export, the SVG, the Notes note.</li>
+      <li>Scrub the first and last 10 seconds for clean in/out points.</li>
+    </ol>
+
+    <div class="note">Timing: the task states no time budget, so this uses the 15&ndash;20 minute default (flow totals ~18 min). Type <code class="inline">schema.sql</code> live (~30 lines); paste the loader and chart script a section at a time and narrate only the key lines. If running long, drop the ER-diagram view and plan-change query 2 first. Disconnect DBeaver before re-running the loader &mdash; it deletes and rebuilds the database file.</div>
+  </div>
+
+  <div id="notes" class="panel">
+    <h2>Notes &mdash; the interpretation note explained</h2>
+    <p>The task asks Notes to hold four things for the analyst: <strong>cohort definition, assumptions, key takeaway, limitation</strong>. Type it live from the draft below; don&rsquo;t paste. Each number has a source you can point to on screen.</p>
+
+    <table>
+      <tr><th>Section</th><th>What it says</th><th>Why it is there</th><th>Source on screen</th></tr>
+      <tr><td>Cohort definition</td><td>Cohort = signup month; retained at day N = no cancel before signup + N days; checkpoints 30/60/90</td><td>Without it, the percentages are ambiguous</td><td><code class="inline">cohort_summary.sql</code> header comments</td></tr>
+      <tr><td>Assumptions</td><td>Data to 2026-06-30 (full 90 days for every cohort); cancel ends a subscription; plan changes are not churn; synthetic data</td><td>States what the numbers rely on</td><td>Analysis tab &rarr; Key definitions</td></tr>
+      <tr><td>Results</td><td>90-day retention 80% / 60% / 70%; hand checks A011, A016, A006</td><td>Lets the analyst verify the headline</td><td>DBeaver grid + <code class="inline">checks.sql</code></td></tr>
+      <tr><td>Key takeaway</td><td>February retains worst and loses accounts at every checkpoint; all 5 upgraders retained vs 63.6% with no change</td><td>The pattern the task asks to explain</td><td>Chart + plan-change query 3</td></tr>
+      <tr><td>Limitation</td><td>n = 10 per cohort, so one account = 10 points; upgrade result has survivorship bias (not causal)</td><td>The limits the task asks to explain</td><td>Legend <code class="inline">n=10</code>; plan-change query 3</td></tr>
+    </table>
+
+    <h3>Draft to retype (from <code class="inline">notes/analyst_note_draft.txt</code>)</h3>
+    <pre style="white-space:pre-wrap;"><code>DRAFT - read this and retype it into Notes during the recording. Do not paste it.
+Check every number against the DBeaver results before you type it.
+
+Title: Cohort retention - interpretation note
+
+Cohort definition
+- An account&#x27;s cohort is the calendar month of its signup_date (2026-01, 2026-02, 2026-03; 10 accounts each).
+- &quot;Retained at day N&quot; means the account has no cancel event dated before signup_date + N days.
+- Checkpoints are day 30, day 60 and day 90.
+
+Assumptions
+- The data runs to 2026-06-30, so every cohort has a full 90 days of history.
+- A cancel event ends the subscription. There are no reactivations in the data.
+- Plan changes (upgrade or downgrade) do not count as churn. The account stays retained.
+- The data is synthetic. Account names and dates are fictional.
+
+Results (90-day retention)
+- 2026-01: 8 of 10 = 80%
+- 2026-02: 6 of 10 = 60%
+- 2026-03: 7 of 10 = 70%
+Hand checks: A011 cancelled on day 23, so it is out by day 30. A016 downgraded, then cancelled on day 65, so it is retained at day 60 and out by day 90. A006 cancelled on day 110, so it counts as retained at day 90.
+
+Key takeaway
+- The February cohort retains worst: 60% at day 90, against 80% for January. February loses accounts at every checkpoint (90% -&gt; 70% -&gt; 60%).
+- All 5 accounts that upgraded were still retained at day 90. The figure is 63.6% for the 22 accounts with no plan change.
+
+Limitation
+- With only 10 accounts per cohort, one account moves retention by 10 points. The cohort gap is a signal to watch, not a proven difference.
+- The upgrade result has survivorship bias: an account has to stay active long enough to upgrade. It does not show that upgrading causes retention.
+</code></pre>
+  </div>
+
+  <div id="checks" class="panel">
+    <h2>Checks &mdash; how each acceptance check is proven</h2>
+
+    <table>
+      <tr><th>Check (from the task)</th><th>Exact proof</th></tr>
+      <tr><td>Enable SQLite foreign-key checks</td><td>Loader: <code class="inline">[PASS] foreign_keys pragma is ON (expected 1, got 1)</code>, <code class="inline">[PASS] no CSV rows rejected by FK/CHECK constraints (none)</code>, <code class="inline">[PASS] foreign_key_check finds no orphans (expected 0, got 0)</code>. DBeaver <code class="inline">checks.sql</code>: pragma = 1, empty <code class="inline">foreign_key_check</code>.</td></tr>
+      <tr><td>Reconcile imported row counts to the three CSV files</td><td>Loader: <code class="inline">[PASS] plans/accounts/events row count reconciles</code> (3=3, 30=30, 20=20) and <code class="inline">6 of 6 checks passed.</code> Matches <code class="inline">wc -l</code> minus header.</td></tr>
+      <tr><td>Compare cohort counts with hand-calculated cases</td><td><code class="inline">cohort_summary.sql</code> grid vs the expected table below.</td></tr>
+      <tr><td>Compare retained/cancelled examples with hand-calculated cases</td><td>Last query in <code class="inline">checks.sql</code> vs the hand-check table below.</td></tr>
+      <tr><td>Exported results match the query output</td><td>Chart script: <code class="inline">[PASS] export matches cohort_summary.sql (21 values compared, tolerance 0.05)</code></td></tr>
+      <tr><td>Exported results match the chart values</td><td>Chart script: <code class="inline">[PASS] chart values match export (9 points read back from retention_chart.svg)</code>; end labels 80% / 70% / 60%.</td></tr>
+      <tr><td>Record cohort definition and limitations in Notes</td><td>Notes note has Cohort definition, Assumptions, Key takeaway, Limitation (Notes tab).</td></tr>
+    </table>
+
+    <h3>Expected cohort numbers</h3>
+    <table>
+      <tr><th>Cohort</th><th>Accounts</th><th>Retained 30d</th><th>Retained 60d</th><th>Retained 90d</th><th>Cancelled before day 90 (day)</th></tr>
+      <tr><td>2026-01</td><td>10</td><td>10 (100%)</td><td>8 (80%)</td><td>8 (80%)</td><td>A009 (37), A003 (39)</td></tr>
+      <tr><td>2026-02</td><td>10</td><td>9 (90%)</td><td>7 (70%)</td><td>6 (60%)</td><td>A011 (23), A012 (44), A015 (50), A016 (65)</td></tr>
+      <tr><td>2026-03</td><td>10</td><td>9 (90%)</td><td>8 (80%)</td><td>7 (70%)</td><td>A028 (22), A023 (40), A026 (68)</td></tr>
+    </table>
+
+    <h3>Hand-check cases</h3>
+    <table>
+      <tr><th>Account</th><th>Events (days after signup)</th><th>Expected</th><th>Flags 30/60/90</th></tr>
+      <tr><td>A011 &mdash; early cancel</td><td>Cancel day 23 (2026-02-02 &rarr; 2026-02-25)</td><td>Not retained at any checkpoint</td><td>0 / 0 / 0</td></tr>
+      <tr><td>A016 &mdash; downgrade then cancel</td><td>Downgrade day 32, cancel day 65</td><td>Retained at 60, out at 90; path = downgraded</td><td>1 / 1 / 0</td></tr>
+      <tr><td>A006 &mdash; late cancel</td><td>Cancel day 110</td><td>Retained at all checkpoints</td><td>1 / 1 / 1</td></tr>
+      <tr><td>A027 &mdash; two upgrades</td><td>Upgrade day 35, upgrade day 77</td><td>Retained; 2 change rows, 1 upgraded account</td><td>1 / 1 / 1</td></tr>
+    </table>
+
+    <h3>Thresholds (fixed before any results were run)</h3>
+    <ul>
+      <li>Row counts, FK violations, rejected rows: <strong>exact</strong> &mdash; one lost or orphaned row is a real defect.</li>
+      <li>Export vs query: &le; <code class="inline">0.05</code>. SQL rounds to 1 decimal, so a genuine difference is &ge; 0.1; 0.05 only absorbs <code class="inline">80</code> vs <code class="inline">80.0</code>.</li>
+      <li>Chart vs export: values read back from the SVG on disk, same <code class="inline">0.05</code>.</li>
+      <li>The SVG has no timestamps: two runs give byte-identical files (verified by SHA-256).</li>
+    </ul>
+
+    <h3>Verified failure cases</h3>
+    <table>
+      <tr><th>Planted problem</th><th>Result</th></tr>
+      <tr><td>Orphan event (account A999)</td><td><code class="inline">[FAIL] no CSV rows rejected ... FOREIGN KEY constraint failed</code> + events count FAIL, exit 1</td></tr>
+      <tr><td>Export value changed 80.0 &rarr; 70.0</td><td><code class="inline">mismatch: ...retention_60d_pct</code> + <code class="inline">[FAIL] export matches ...</code>, exit 1, no chart</td></tr>
+      <tr><td>Locale decimal comma (80,0)</td><td>Reported mismatch, exit 1 (no crash)</td></tr>
+      <tr><td>Renamed header column</td><td><code class="inline">cohorts differ</code>, exit 1 (no crash)</td></tr>
+    </table>
+  </div>
+
+  <div id="code" class="panel">
+    <h2>Code Walkthrough</h2>
+    <p>Each Python script has a clean deliverable and an annotated copy for narration. Both copies are token-identical apart from comments and produce byte-identical output. Standard library only; verified with Python 3.13.</p>
+
+    <h3>1. Schema &mdash; <code class="inline">sql/schema.sql</code> (type live)</h3>
+    <pre style="max-height:420px; overflow:auto;"><code>-- Subscription cohort model (synthetic data).
+-- SQLite only enforces the REFERENCES clauses when a connection runs:
+--   PRAGMA foreign_keys = ON;
+
+DROP TABLE IF EXISTS events;
+DROP TABLE IF EXISTS accounts;
+DROP TABLE IF EXISTS plans;
+
+CREATE TABLE plans (
+    plan_id            TEXT    PRIMARY KEY,
+    plan_name          TEXT    NOT NULL UNIQUE,
+    monthly_price_usd  INTEGER NOT NULL CHECK (monthly_price_usd &gt; 0)
+);
+
+CREATE TABLE accounts (
+    account_id      TEXT PRIMARY KEY,
+    account_name    TEXT NOT NULL,
+    signup_date     TEXT NOT NULL CHECK (signup_date = date(signup_date)),
+    signup_plan_id  TEXT NOT NULL REFERENCES plans (plan_id)
+);
+
+CREATE TABLE events (
+    event_id      TEXT PRIMARY KEY,
+    account_id    TEXT NOT NULL REFERENCES accounts (account_id),
+    event_date    TEXT NOT NULL CHECK (event_date = date(event_date)),
+    event_type    TEXT NOT NULL CHECK (event_type IN (&#x27;upgrade&#x27;, &#x27;downgrade&#x27;, &#x27;cancel&#x27;)),
+    from_plan_id  TEXT NOT NULL REFERENCES plans (plan_id),
+    to_plan_id    TEXT REFERENCES plans (plan_id),
+    CHECK ((event_type = &#x27;cancel&#x27;) = (to_plan_id IS NULL))
+);
+
+CREATE INDEX idx_events_account ON events (account_id, event_date);
+</code></pre>
+
+    <h3>2. Loader &mdash; <code class="inline">python3 loader/load_data.py</code></h3>
+    <div class="block-title">Clean &mdash; loader/load_data.py</div>
+    <pre style="max-height:420px; overflow:auto;"><code class="py-src">&quot;&quot;&quot;Build subscriptions.db from schema.sql and the three synthetic CSV files.&quot;&quot;&quot;
+
+import csv
+import sqlite3
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+SCHEMA = ROOT / &quot;sql&quot; / &quot;schema.sql&quot;
+DATA = ROOT / &quot;data&quot;
+TABLES = [&quot;plans&quot;, &quot;accounts&quot;, &quot;events&quot;]
+
+
+def read_csv(path):
+    &quot;&quot;&quot;Read a CSV file, turning empty cells into None.
+
+    Args:
+        path: Path to a CSV file with a header row.
+
+    Returns:
+        A tuple of (column names, list of row tuples).
+    &quot;&quot;&quot;
+    with open(path, newline=&quot;&quot;, encoding=&quot;utf-8&quot;) as f:
+        reader = csv.reader(f)
+        header = next(reader)
+        rows = [tuple(cell if cell != &quot;&quot; else None for cell in row) for row in reader]
+    return header, rows
+
+
+def load(db_path):
+    &quot;&quot;&quot;Create the schema, load every CSV with foreign keys enforced, and run the checks.
+
+    Args:
+        db_path: Where to write the SQLite database (replaced if present).
+
+    Returns:
+        A list of (passed, description) tuples, one per acceptance check.
+    &quot;&quot;&quot;
+    db_path.unlink(missing_ok=True)
+    conn = sqlite3.connect(db_path)
+    conn.execute(&quot;PRAGMA foreign_keys = ON&quot;)
+    conn.executescript(SCHEMA.read_text(encoding=&quot;utf-8&quot;))
+
+    counts, rejected = [], []
+    for table in TABLES:
+        header, rows = read_csv(DATA / f&quot;{table}.csv&quot;)
+        placeholders = &quot;, &quot;.join(&quot;?&quot; for _ in header)
+        try:
+            with conn:
+                conn.executemany(
+                    f&quot;INSERT INTO {table} ({&#x27;, &#x27;.join(header)}) VALUES ({placeholders})&quot;,
+                    rows,
+                )
+        except sqlite3.IntegrityError as exc:
+            rejected.append(f&quot;{table}: {exc}&quot;)
+        db_rows = conn.execute(f&quot;SELECT COUNT(*) FROM {table}&quot;).fetchone()[0]
+        counts.append((table, len(rows), db_rows))
+
+    fk_on = conn.execute(&quot;PRAGMA foreign_keys&quot;).fetchone()[0]
+    violations = conn.execute(&quot;PRAGMA foreign_key_check&quot;).fetchall()
+    conn.close()
+
+    checks = [
+        (fk_on == 1, f&quot;foreign_keys pragma is ON (expected 1, got {fk_on})&quot;),
+        (not rejected, f&quot;no CSV rows rejected by FK/CHECK constraints ({&#x27;; &#x27;.join(rejected) or &#x27;none&#x27;})&quot;),
+        (not violations, f&quot;foreign_key_check finds no orphans (expected 0, got {len(violations)})&quot;),
+    ]
+    for table, csv_rows, db_rows in counts:
+        checks.append((csv_rows == db_rows, f&quot;{table} row count reconciles (csv {csv_rows}, db {db_rows})&quot;))
+    return checks
+
+
+def main():
+    &quot;&quot;&quot;Run the loader, print one PASS/FAIL line per check, and exit non-zero on failure.
+
+    Returns:
+        None. Exits with status 1 if any check fails.
+    &quot;&quot;&quot;
+    db_path = Path(sys.argv[1]) if len(sys.argv) &gt; 1 else ROOT / &quot;subscriptions.db&quot;
+    checks = load(db_path)
+    for passed, description in checks:
+        print(f&quot;[{&#x27;PASS&#x27; if passed else &#x27;FAIL&#x27;}] {description}&quot;)
+    passed_count = sum(passed for passed, _ in checks)
+    print(f&quot;{db_path.name}: {passed_count} of {len(checks)} checks passed.&quot;)
+    if passed_count != len(checks):
+        sys.exit(1)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+    <div class="block-title">Annotated &mdash; loader/load_data_annotated.py</div>
+    <pre style="max-height:650px; overflow:auto;"><code class="py-src">&quot;&quot;&quot;Build subscriptions.db from schema.sql and the three synthetic CSV files.&quot;&quot;&quot;
+
+import csv  # standard-library CSV parser, so no pandas install is needed
+import sqlite3  # SQLite ships with Python, so this is the whole database layer
+import sys  # used for the optional db-path argument and the exit code
+from pathlib import Path  # paths that work the same on macOS and Windows
+
+# The project folder is one level above loader/, wherever it was copied to.
+ROOT = Path(__file__).resolve().parent.parent
+# schema.sql holds the CREATE TABLE statements that we load as written.
+SCHEMA = ROOT / &quot;sql&quot; / &quot;schema.sql&quot;
+# data/ holds plans.csv, accounts.csv and events.csv.
+DATA = ROOT / &quot;data&quot;
+# Parents before children: events references accounts, and accounts references plans.
+TABLES = [&quot;plans&quot;, &quot;accounts&quot;, &quot;events&quot;]
+
+
+def read_csv(path):
+    &quot;&quot;&quot;Read a CSV file, turning empty cells into None.
+
+    Args:
+        path: Path to a CSV file with a header row.
+
+    Returns:
+        A tuple of (column names, list of row tuples).
+    &quot;&quot;&quot;
+    # newline=&quot;&quot; is the csv module&#x27;s documented way to open files.
+    with open(path, newline=&quot;&quot;, encoding=&quot;utf-8&quot;) as f:
+        reader = csv.reader(f)  # yields each line as a list of strings
+        header = next(reader)  # the first line holds the column names
+        # An empty cell (e.g. to_plan_id on a cancel) must become SQL NULL, not &#x27;&#x27;.
+        rows = [tuple(cell if cell != &quot;&quot; else None for cell in row) for row in reader]
+    return header, rows  # columns plus data rows, with no header row in the data
+
+
+def load(db_path):
+    &quot;&quot;&quot;Create the schema, load every CSV with foreign keys enforced, and run the checks.
+
+    Args:
+        db_path: Where to write the SQLite database (replaced if present).
+
+    Returns:
+        A list of (passed, description) tuples, one per acceptance check.
+    &quot;&quot;&quot;
+    db_path.unlink(missing_ok=True)  # start fresh so a rerun never double-loads
+    conn = sqlite3.connect(db_path)  # creates the .db file on first connect
+    # FK enforcement is OFF by default and per connection, so turn it on before any insert.
+    conn.execute(&quot;PRAGMA foreign_keys = ON&quot;)
+    conn.executescript(SCHEMA.read_text(encoding=&quot;utf-8&quot;))  # run schema.sql as-is
+
+    # counts holds (table, csv data rows, rows that landed); rejected holds constraint errors per table.
+    counts, rejected = [], []
+    for table in TABLES:  # load the tables in dependency order
+        header, rows = read_csv(DATA / f&quot;{table}.csv&quot;)  # each CSV is named after its table
+        placeholders = &quot;, &quot;.join(&quot;?&quot; for _ in header)  # one ? per column, so values are parameterised
+        try:
+            with conn:  # commits on success and rolls back the whole table if an FK or CHECK fails
+                conn.executemany(
+                    # Column names come from our own CSV header, and the values go in as parameters.
+                    f&quot;INSERT INTO {table} ({&#x27;, &#x27;.join(header)}) VALUES ({placeholders})&quot;,
+                    rows,
+                )
+        except sqlite3.IntegrityError as exc:  # e.g. &quot;FOREIGN KEY constraint failed&quot;
+            rejected.append(f&quot;{table}: {exc}&quot;)  # report it as a FAIL line instead of a traceback
+        # Count the rows that actually landed in the table.
+        db_rows = conn.execute(f&quot;SELECT COUNT(*) FROM {table}&quot;).fetchone()[0]
+        counts.append((table, len(rows), db_rows))  # keep both sides for the reconciliation
+
+    fk_on = conn.execute(&quot;PRAGMA foreign_keys&quot;).fetchone()[0]  # prove enforcement was really on
+    violations = conn.execute(&quot;PRAGMA foreign_key_check&quot;).fetchall()  # orphans, if any
+    conn.close()  # release the file so DBeaver can open it
+
+    checks = [
+        # Check 1a: FK enforcement must read back as exactly 1 on this connection.
+        (fk_on == 1, f&quot;foreign_keys pragma is ON (expected 1, got {fk_on})&quot;),
+        # Check 1b: the enforced FKs and CHECKs rejected no CSV row while loading.
+        (not rejected, f&quot;no CSV rows rejected by FK/CHECK constraints ({&#x27;; &#x27;.join(rejected) or &#x27;none&#x27;})&quot;),
+        # Check 1c: zero orphans. There is no tolerance, because one dangling key is a defect.
+        (not violations, f&quot;foreign_key_check finds no orphans (expected 0, got {len(violations)})&quot;),
+    ]
+    for table, csv_rows, db_rows in counts:  # Check 2: exact equality per table, with no tolerance
+        checks.append((csv_rows == db_rows, f&quot;{table} row count reconciles (csv {csv_rows}, db {db_rows})&quot;))
+    return checks  # main() decides how to report them
+
+
+def main():
+    &quot;&quot;&quot;Run the loader, print one PASS/FAIL line per check, and exit non-zero on failure.
+
+    Returns:
+        None. Exits with status 1 if any check fails.
+    &quot;&quot;&quot;
+    # Default output is subscriptions.db in the project folder; an argument overrides it.
+    db_path = Path(sys.argv[1]) if len(sys.argv) &gt; 1 else ROOT / &quot;subscriptions.db&quot;
+    checks = load(db_path)  # build the database and collect the check results
+    for passed, description in checks:  # one readable line per check, for the recording
+        print(f&quot;[{&#x27;PASS&#x27; if passed else &#x27;FAIL&#x27;}] {description}&quot;)
+    passed_count = sum(passed for passed, _ in checks)  # True counts as 1
+    print(f&quot;{db_path.name}: {passed_count} of {len(checks)} checks passed.&quot;)
+    if passed_count != len(checks):  # any failure at all
+        sys.exit(1)  # a non-zero exit code makes the failure obvious in the terminal
+
+
+if __name__ == &quot;__main__&quot;:  # run only when executed, not when imported
+    main()
+</code></pre>
+
+    <h3>3. DBeaver SQL</h3>
+    <div class="block-title">sql/checks.sql</div>
+    <pre style="max-height:420px; overflow:auto;"><code>-- Run these first in DBeaver: SQLite foreign keys are per connection.
+PRAGMA foreign_keys = ON;
+PRAGMA foreign_keys;          -- expect 1
+PRAGMA foreign_key_check;     -- expect no rows
+
+-- Row counts: expect plans 3, accounts 30, events 20 (CSV data rows).
+SELECT &#x27;plans&#x27; AS table_name, COUNT(*) AS row_count FROM plans
+UNION ALL SELECT &#x27;accounts&#x27;, COUNT(*) FROM accounts
+UNION ALL SELECT &#x27;events&#x27;,   COUNT(*) FROM events;
+
+-- Hand-check cases: days from signup to each event.
+SELECT
+    a.account_id,
+    a.signup_date,
+    e.event_date,
+    e.event_type,
+    CAST(julianday(e.event_date) - julianday(a.signup_date) AS INTEGER) AS days_after_signup
+FROM accounts AS a
+JOIN events AS e ON e.account_id = a.account_id
+WHERE a.account_id IN (&#x27;A006&#x27;, &#x27;A011&#x27;, &#x27;A016&#x27;, &#x27;A027&#x27;)
+ORDER BY a.account_id, e.event_date;
+
+-- Hand-check cases: the retention flags the cohort query assigns (same rule).
+-- Expect A006 1/1/1, A011 0/0/0, A016 1/1/0, A027 1/1/1.
+WITH first_cancel AS (
+    SELECT account_id, MIN(event_date) AS cancel_date
+    FROM events
+    WHERE event_type = &#x27;cancel&#x27;
+    GROUP BY account_id
+)
+SELECT
+    a.account_id,
+    a.signup_date,
+    c.cancel_date,
+    CASE WHEN c.cancel_date IS NULL OR c.cancel_date &gt;= date(a.signup_date, &#x27;+30 days&#x27;) THEN 1 ELSE 0 END AS retained_30d,
+    CASE WHEN c.cancel_date IS NULL OR c.cancel_date &gt;= date(a.signup_date, &#x27;+60 days&#x27;) THEN 1 ELSE 0 END AS retained_60d,
+    CASE WHEN c.cancel_date IS NULL OR c.cancel_date &gt;= date(a.signup_date, &#x27;+90 days&#x27;) THEN 1 ELSE 0 END AS retained_90d
+FROM accounts AS a
+LEFT JOIN first_cancel AS c ON c.account_id = a.account_id
+WHERE a.account_id IN (&#x27;A006&#x27;, &#x27;A011&#x27;, &#x27;A016&#x27;, &#x27;A027&#x27;)
+ORDER BY a.account_id;
+</code></pre>
+    <div class="block-title">sql/cohort_summary.sql (exported; the chart script re-runs this same file)</div>
+    <pre style="max-height:420px; overflow:auto;"><code>-- Cohort = calendar month of accounts.signup_date.
+-- Retained at day N = no cancel event dated before signup_date + N days.
+-- Data runs to 2026-06-30, so every cohort has a full 90 days of history.
+WITH first_cancel AS (
+    SELECT account_id, MIN(event_date) AS cancel_date
+    FROM events
+    WHERE event_type = &#x27;cancel&#x27;
+    GROUP BY account_id
+),
+account_status AS (
+    SELECT
+        strftime(&#x27;%Y-%m&#x27;, a.signup_date) AS cohort_month,
+        a.account_id,
+        CASE WHEN c.cancel_date IS NULL OR c.cancel_date &gt;= date(a.signup_date, &#x27;+30 days&#x27;) THEN 1 ELSE 0 END AS retained_30d,
+        CASE WHEN c.cancel_date IS NULL OR c.cancel_date &gt;= date(a.signup_date, &#x27;+60 days&#x27;) THEN 1 ELSE 0 END AS retained_60d,
+        CASE WHEN c.cancel_date IS NULL OR c.cancel_date &gt;= date(a.signup_date, &#x27;+90 days&#x27;) THEN 1 ELSE 0 END AS retained_90d
+    FROM accounts AS a
+    LEFT JOIN first_cancel AS c ON c.account_id = a.account_id
+)
+SELECT
+    cohort_month,
+    COUNT(*)                                       AS cohort_accounts,
+    SUM(retained_30d)                              AS retained_30d,
+    SUM(retained_60d)                              AS retained_60d,
+    SUM(retained_90d)                              AS retained_90d,
+    ROUND(100.0 * SUM(retained_30d) / COUNT(*), 1) AS retention_30d_pct,
+    ROUND(100.0 * SUM(retained_60d) / COUNT(*), 1) AS retention_60d_pct,
+    ROUND(100.0 * SUM(retained_90d) / COUNT(*), 1) AS retention_90d_pct
+FROM account_status
+GROUP BY cohort_month
+ORDER BY cohort_month;
+</code></pre>
+    <div class="block-title">sql/plan_change_queries.sql</div>
+    <pre style="max-height:420px; overflow:auto;"><code>-- 1. Every plan change, oldest first, with the price move it caused.
+SELECT
+    e.event_date,
+    e.account_id,
+    strftime(&#x27;%Y-%m&#x27;, a.signup_date)            AS cohort_month,
+    e.event_type,
+    pf.plan_name                                AS from_plan,
+    pt.plan_name                                AS to_plan,
+    pt.monthly_price_usd - pf.monthly_price_usd AS price_change_usd
+FROM events AS e
+JOIN accounts AS a  ON a.account_id = e.account_id
+JOIN plans    AS pf ON pf.plan_id   = e.from_plan_id
+JOIN plans    AS pt ON pt.plan_id   = e.to_plan_id
+WHERE e.event_type IN (&#x27;upgrade&#x27;, &#x27;downgrade&#x27;)
+ORDER BY e.event_date, e.event_id;
+
+-- 2. Plan changes per signup cohort.
+SELECT
+    strftime(&#x27;%Y-%m&#x27;, a.signup_date)                            AS cohort_month,
+    SUM(CASE WHEN e.event_type = &#x27;upgrade&#x27;   THEN 1 ELSE 0 END) AS upgrades,
+    SUM(CASE WHEN e.event_type = &#x27;downgrade&#x27; THEN 1 ELSE 0 END) AS downgrades
+FROM accounts AS a
+LEFT JOIN events AS e ON e.account_id = a.account_id
+GROUP BY cohort_month
+ORDER BY cohort_month;
+
+-- 3. 90-day retention by plan-change path (upgraded / downgraded / no change).
+WITH paths AS (
+    SELECT
+        a.account_id,
+        a.signup_date,
+        CASE
+            WHEN EXISTS (SELECT 1 FROM events e WHERE e.account_id = a.account_id AND e.event_type = &#x27;upgrade&#x27;)   THEN &#x27;upgraded&#x27;
+            WHEN EXISTS (SELECT 1 FROM events e WHERE e.account_id = a.account_id AND e.event_type = &#x27;downgrade&#x27;) THEN &#x27;downgraded&#x27;
+            ELSE &#x27;no change&#x27;
+        END AS plan_path,
+        (SELECT MIN(e.event_date) FROM events e
+          WHERE e.account_id = a.account_id AND e.event_type = &#x27;cancel&#x27;) AS cancel_date
+    FROM accounts AS a
+),
+flagged AS (
+    SELECT
+        plan_path,
+        CASE WHEN cancel_date IS NULL OR cancel_date &gt;= date(signup_date, &#x27;+90 days&#x27;) THEN 1 ELSE 0 END AS retained_90d
+    FROM paths
+)
+SELECT
+    plan_path,
+    COUNT(*)                                       AS accounts,
+    SUM(retained_90d)                              AS retained_90d,
+    ROUND(100.0 * SUM(retained_90d) / COUNT(*), 1) AS retention_90d_pct
+FROM flagged
+GROUP BY plan_path
+ORDER BY plan_path;
+</code></pre>
+
+    <h3>4. Chart &mdash; <code class="inline">python3 chart/chart_retention.py</code></h3>
+    <div class="block-title">Clean &mdash; chart/chart_retention.py</div>
+    <pre style="max-height:420px; overflow:auto;"><code class="py-src">&quot;&quot;&quot;Verify the DBeaver cohort export against the database, then chart it as SVG.&quot;&quot;&quot;
+
+import csv
+import re
+import sqlite3
+import sys
+from pathlib import Path
+from xml.sax.saxutils import escape
+
+ROOT = Path(__file__).resolve().parent.parent
+QUERY = ROOT / &quot;sql&quot; / &quot;cohort_summary.sql&quot;
+DAYS = [30, 60, 90]
+COLORS = [&quot;#2a78d6&quot;, &quot;#eb6834&quot;, &quot;#1baf7a&quot;]
+TOLERANCE = 0.05
+POINT_TITLE = re.compile(r&quot;&lt;title&gt;(\d{4}-\d{2}) cohort, day (\d+): ([\d.]+)%&lt;/title&gt;&quot;)
+
+
+def read_export(path):
+    &quot;&quot;&quot;Read the cohort summary CSV exported from DBeaver.
+
+    Args:
+        path: Path to the exported CSV (a UTF-8 byte-order mark is tolerated).
+
+    Returns:
+        A dict mapping cohort_month to a dict of column name to string value.
+    &quot;&quot;&quot;
+    with open(path, newline=&quot;&quot;, encoding=&quot;utf-8-sig&quot;) as f:
+        return {row.get(&quot;cohort_month&quot;): row for row in csv.DictReader(f)}
+
+
+def run_query(db_path):
+    &quot;&quot;&quot;Run cohort_summary.sql, the same SQL used for the DBeaver export.
+
+    Args:
+        db_path: Path to subscriptions.db.
+
+    Returns:
+        A dict mapping cohort_month to a dict of column name to value.
+    &quot;&quot;&quot;
+    conn = sqlite3.connect(db_path)
+    cur = conn.execute(QUERY.read_text(encoding=&quot;utf-8&quot;))
+    cols = [d[0] for d in cur.description]
+    result = {row[0]: dict(zip(cols, row)) for row in cur.fetchall()}
+    conn.close()
+    return result
+
+
+def verify(exported, queried):
+    &quot;&quot;&quot;Check that every exported value equals the live query result.
+
+    Args:
+        exported: Rows from read_export.
+        queried: Rows from run_query.
+
+    Returns:
+        A list of mismatch descriptions; empty when the export is verified.
+    &quot;&quot;&quot;
+    problems = []
+    if set(exported) != set(queried):
+        problems.append(f&quot;cohorts differ: export {sorted(exported, key=str)} vs query {sorted(queried)}&quot;)
+    for month in sorted(set(exported) &amp; set(queried)):
+        for col, value in queried[month].items():
+            if col == &quot;cohort_month&quot;:
+                continue
+            got = exported[month].get(col)
+            try:
+                same = abs(float(got) - float(value)) &lt;= TOLERANCE
+            except (TypeError, ValueError):
+                same = False
+            if not same:
+                problems.append(f&quot;{month}.{col}: export {got} vs query {value}&quot;)
+    return problems
+
+
+def build_svg(rows):
+    &quot;&quot;&quot;Draw a retention curve per cohort: day 0 (100%) then days 30, 60, 90.
+
+    Args:
+        rows: Verified rows keyed by cohort_month.
+
+    Returns:
+        The SVG document as a string.
+    &quot;&quot;&quot;
+    width, height = 720, 440
+    left, right, top, bottom = 64, 150, 92, 56
+    plot_w, plot_h = width - left - right, height - top - bottom
+
+    def x(day):
+        return left + plot_w * day / 90
+
+    def y(pct):
+        return top + plot_h * (1 - pct / 100)
+
+    parts = [
+        f&#x27;&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;{width}&quot; height=&quot;{height}&quot; &#x27;
+        f&#x27;viewBox=&quot;0 0 {width} {height}&quot; font-family=&quot;Helvetica, Arial, sans-serif&quot;&gt;&#x27;,
+        f&#x27;&lt;rect width=&quot;{width}&quot; height=&quot;{height}&quot; fill=&quot;#fcfcfb&quot;/&gt;&#x27;,
+        f&#x27;&lt;text x=&quot;{left}&quot; y=&quot;28&quot; font-size=&quot;17&quot; font-weight=&quot;600&quot; fill=&quot;#0b0b0b&quot;&gt;&#x27;
+        &quot;Retention by signup cohort&lt;/text&gt;&quot;,
+        f&#x27;&lt;text x=&quot;{left}&quot; y=&quot;48&quot; font-size=&quot;12&quot; fill=&quot;#52514e&quot;&gt;&#x27;
+        &quot;% of accounts with no cancel event, by days since signup (synthetic data)&lt;/text&gt;&quot;,
+    ]
+    for pct in range(0, 101, 25):
+        parts.append(f&#x27;&lt;line x1=&quot;{left}&quot; x2=&quot;{left + plot_w}&quot; y1=&quot;{y(pct)}&quot; y2=&quot;{y(pct)}&quot; &#x27;
+                     &#x27;stroke=&quot;#e4e3df&quot; stroke-width=&quot;1&quot;/&gt;&#x27;)
+        parts.append(f&#x27;&lt;text x=&quot;{left - 8}&quot; y=&quot;{y(pct) + 4}&quot; font-size=&quot;11&quot; fill=&quot;#52514e&quot; &#x27;
+                     f&#x27;text-anchor=&quot;end&quot;&gt;{pct}%&lt;/text&gt;&#x27;)
+    for day in [0] + DAYS:
+        parts.append(f&#x27;&lt;text x=&quot;{x(day)}&quot; y=&quot;{top + plot_h + 20}&quot; font-size=&quot;11&quot; fill=&quot;#52514e&quot; &#x27;
+                     f&#x27;text-anchor=&quot;middle&quot;&gt;Day {day}&lt;/text&gt;&#x27;)
+    parts.append(f&#x27;&lt;text x=&quot;{left + plot_w / 2}&quot; y=&quot;{height - 12}&quot; font-size=&quot;12&quot; fill=&quot;#52514e&quot; &#x27;
+                 &#x27;text-anchor=&quot;middle&quot;&gt;Days since signup&lt;/text&gt;&#x27;)
+
+    for i, (month, row) in enumerate(sorted(rows.items())):
+        color = COLORS[i % len(COLORS)]
+        points = [(0, 100.0)] + [(d, float(row[f&quot;retention_{d}d_pct&quot;])) for d in DAYS]
+        path = &quot; &quot;.join(f&quot;{x(d):.1f},{y(p):.1f}&quot; for d, p in points)
+        parts.append(f&#x27;&lt;polyline points=&quot;{path}&quot; fill=&quot;none&quot; stroke=&quot;{color}&quot; stroke-width=&quot;2&quot; &#x27;
+                     &#x27;stroke-linejoin=&quot;round&quot;/&gt;&#x27;)
+        for d, p in points:
+            parts.append(f&#x27;&lt;circle cx=&quot;{x(d):.1f}&quot; cy=&quot;{y(p):.1f}&quot; r=&quot;4&quot; fill=&quot;{color}&quot; &#x27;
+                         f&#x27;stroke=&quot;#fcfcfb&quot; stroke-width=&quot;2&quot;&gt;&lt;title&gt;{escape(month)} cohort, &#x27;
+                         f&#x27;day {d}: {p:.1f}%&lt;/title&gt;&lt;/circle&gt;&#x27;)
+        last = points[-1][1]
+        parts.append(f&#x27;&lt;text x=&quot;{x(90) + 10}&quot; y=&quot;{y(last) + 4}&quot; font-size=&quot;12&quot; fill=&quot;#0b0b0b&quot;&gt;&#x27;
+                     f&#x27;{escape(month)} · {last:.0f}%&lt;/text&gt;&#x27;)
+        lx = left + i * 110
+        parts.append(f&#x27;&lt;rect x=&quot;{lx}&quot; y=&quot;56&quot; width=&quot;10&quot; height=&quot;10&quot; rx=&quot;2&quot; fill=&quot;{color}&quot;/&gt;&#x27;)
+        parts.append(f&#x27;&lt;text x=&quot;{lx + 15}&quot; y=&quot;65&quot; font-size=&quot;11&quot; fill=&quot;#52514e&quot;&gt;&#x27;
+                     f&#x27;{escape(month)} (n={row[&quot;cohort_accounts&quot;]})&lt;/text&gt;&#x27;)
+    parts.append(&quot;&lt;/svg&gt;&quot;)
+    return &quot;\n&quot;.join(parts) + &quot;\n&quot;
+
+
+def read_plotted(svg_path):
+    &quot;&quot;&quot;Read the plotted checkpoint values back out of a written chart.
+
+    Args:
+        svg_path: Path to the SVG written by build_svg.
+
+    Returns:
+        A dict mapping (cohort_month, day) to the plotted percentage, day 0 excluded.
+    &quot;&quot;&quot;
+    text = svg_path.read_text(encoding=&quot;utf-8&quot;)
+    return {(m, int(d)): float(p) for m, d, p in POINT_TITLE.findall(text) if d != &quot;0&quot;}
+
+
+def main():
+    &quot;&quot;&quot;Verify the export, write the SVG chart, and check the chart against the export.
+
+    Returns:
+        None. Exits with status 1 if either check fails.
+    &quot;&quot;&quot;
+    export_path = Path(sys.argv[1]) if len(sys.argv) &gt; 1 else ROOT / &quot;exports&quot; / &quot;cohort_summary.csv&quot;
+    db_path = Path(sys.argv[2]) if len(sys.argv) &gt; 2 else ROOT / &quot;subscriptions.db&quot;
+    out_path = Path(sys.argv[3]) if len(sys.argv) &gt; 3 else ROOT / &quot;chart&quot; / &quot;retention_chart.svg&quot;
+
+    exported = read_export(export_path)
+    queried = run_query(db_path)
+    problems = verify(exported, queried)
+    for problem in problems:
+        print(&quot;  mismatch: &quot; + problem)
+    compared = sum(len(row) - 1 for row in queried.values())
+    print(f&quot;[{&#x27;FAIL&#x27; if problems else &#x27;PASS&#x27;}] export matches cohort_summary.sql &quot;
+          f&quot;({compared} values compared, tolerance {TOLERANCE})&quot;)
+    if problems:
+        sys.exit(1)
+
+    print(f&quot;{&#x27;cohort&#x27;:&lt;9}{&#x27;n&#x27;:&gt;4}{&#x27;30d %&#x27;:&gt;8}{&#x27;60d %&#x27;:&gt;8}{&#x27;90d %&#x27;:&gt;8}&quot;)
+    for month, row in sorted(exported.items()):
+        print(f&quot;{month:&lt;9}{row[&#x27;cohort_accounts&#x27;]:&gt;4}&quot;
+              + &quot;&quot;.join(f&quot;{float(row[f&#x27;retention_{d}d_pct&#x27;]):&gt;8.1f}&quot; for d in DAYS))
+    out_path.write_text(build_svg(exported), encoding=&quot;utf-8&quot;)
+
+    plotted = read_plotted(out_path)
+    expected = {(m, d): float(row[f&quot;retention_{d}d_pct&quot;]) for m, row in exported.items() for d in DAYS}
+    chart_ok = plotted.keys() == expected.keys() and all(
+        abs(plotted[k] - expected[k]) &lt;= TOLERANCE for k in expected)
+    print(f&quot;[{&#x27;PASS&#x27; if chart_ok else &#x27;FAIL&#x27;}] chart values match export &quot;
+          f&quot;({len(plotted)} points read back from {out_path.name})&quot;)
+    if not chart_ok:
+        sys.exit(1)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+    <div class="block-title">Annotated &mdash; chart/chart_retention_annotated.py</div>
+    <pre style="max-height:650px; overflow:auto;"><code class="py-src">&quot;&quot;&quot;Verify the DBeaver cohort export against the database, then chart it as SVG.&quot;&quot;&quot;
+
+import csv  # reads the CSV that DBeaver exported
+import re  # pulls the plotted values back out of the finished SVG
+import sqlite3  # re-runs the same query on the database for the comparison
+import sys  # optional path arguments and the exit code
+from pathlib import Path  # paths that work on macOS and Windows
+from xml.sax.saxutils import escape  # makes any text safe to put inside SVG markup
+
+# The project folder is one level above chart/.
+ROOT = Path(__file__).resolve().parent.parent
+# This is the exact SQL file that was run in DBeaver, so there is a single source of truth.
+QUERY = ROOT / &quot;sql&quot; / &quot;cohort_summary.sql&quot;
+# The retention checkpoints that the query reports.
+DAYS = [30, 60, 90]
+# Categorical slots 1-3 (blue, orange, aqua), validated as a set for colour-blind separation.
+COLORS = [&quot;#2a78d6&quot;, &quot;#eb6834&quot;, &quot;#1baf7a&quot;]
+# The SQL rounds to 1 decimal place, so a real mismatch is at least 0.1. 0.05 absorbs &quot;80&quot; vs &quot;80.0&quot; and nothing more.
+TOLERANCE = 0.05
+# Every marker carries a tooltip like &quot;2026-02 cohort, day 60: 70.0%&quot;. This regex reads it back.
+POINT_TITLE = re.compile(r&quot;&lt;title&gt;(\d{4}-\d{2}) cohort, day (\d+): ([\d.]+)%&lt;/title&gt;&quot;)
+
+
+def read_export(path):
+    &quot;&quot;&quot;Read the cohort summary CSV exported from DBeaver.
+
+    Args:
+        path: Path to the exported CSV (a UTF-8 byte-order mark is tolerated).
+
+    Returns:
+        A dict mapping cohort_month to a dict of column name to string value.
+    &quot;&quot;&quot;
+    # utf-8-sig strips the BOM if DBeaver&#x27;s &quot;Insert BOM&quot; option was ticked.
+    with open(path, newline=&quot;&quot;, encoding=&quot;utf-8-sig&quot;) as f:
+        # Key each row by its cohort. .get() turns a wrong header into a reported mismatch, not a crash.
+        return {row.get(&quot;cohort_month&quot;): row for row in csv.DictReader(f)}
+
+
+def run_query(db_path):
+    &quot;&quot;&quot;Run cohort_summary.sql, the same SQL used for the DBeaver export.
+
+    Args:
+        db_path: Path to subscriptions.db.
+
+    Returns:
+        A dict mapping cohort_month to a dict of column name to value.
+    &quot;&quot;&quot;
+    conn = sqlite3.connect(db_path)  # open the database the loader built
+    cur = conn.execute(QUERY.read_text(encoding=&quot;utf-8&quot;))  # one SELECT, so execute() is enough
+    cols = [d[0] for d in cur.description]  # the column labels, which match the export header
+    # Same shape as read_export: {cohort_month: {column: value}}.
+    result = {row[0]: dict(zip(cols, row)) for row in cur.fetchall()}
+    conn.close()  # release the file
+    return result
+
+
+def verify(exported, queried):
+    &quot;&quot;&quot;Check that every exported value equals the live query result.
+
+    Args:
+        exported: Rows from read_export.
+        queried: Rows from run_query.
+
+    Returns:
+        A list of mismatch descriptions; empty when the export is verified.
+    &quot;&quot;&quot;
+    problems = []  # collect every mismatch so they are all reported at once
+    if set(exported) != set(queried):  # same set of cohorts on both sides?
+        # key=str keeps sorting safe even if a broken header produced a None key.
+        problems.append(f&quot;cohorts differ: export {sorted(exported, key=str)} vs query {sorted(queried)}&quot;)
+    for month in sorted(set(exported) &amp; set(queried)):  # compare the cohorts that both sides have
+        for col, value in queried[month].items():  # every column the query returned
+            if col == &quot;cohort_month&quot;:  # this is the key, not a value to compare
+                continue
+            got = exported[month].get(col)  # None means the column is missing from the export
+            try:
+                # Compare as numbers: DBeaver may write 80 where SQLite returns 80.0.
+                same = abs(float(got) - float(value)) &lt;= TOLERANCE
+            except (TypeError, ValueError):  # a missing value, or a locale format like &quot;80,0&quot;
+                same = False
+            if not same:
+                problems.append(f&quot;{month}.{col}: export {got} vs query {value}&quot;)
+    return problems
+
+
+def build_svg(rows):
+    &quot;&quot;&quot;Draw a retention curve per cohort: day 0 (100%) then days 30, 60, 90.
+
+    Args:
+        rows: Verified rows keyed by cohort_month.
+
+    Returns:
+        The SVG document as a string.
+    &quot;&quot;&quot;
+    width, height = 720, 440  # canvas size in pixels
+    left, right, top, bottom = 64, 150, 92, 56  # margins; the right margin holds the end labels
+    plot_w, plot_h = width - left - right, height - top - bottom  # the drawable area
+
+    def x(day):
+        return left + plot_w * day / 90  # day 0..90 maps across the plot width
+
+    def y(pct):
+        return top + plot_h * (1 - pct / 100)  # 100% at the top and 0% at the bottom
+
+    parts = [
+        # Root element; viewBox lets the chart scale cleanly in a browser or in VS Code.
+        f&#x27;&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;{width}&quot; height=&quot;{height}&quot; &#x27;
+        f&#x27;viewBox=&quot;0 0 {width} {height}&quot; font-family=&quot;Helvetica, Arial, sans-serif&quot;&gt;&#x27;,
+        f&#x27;&lt;rect width=&quot;{width}&quot; height=&quot;{height}&quot; fill=&quot;#fcfcfb&quot;/&gt;&#x27;,  # light chart surface
+        # The title names what is being measured.
+        f&#x27;&lt;text x=&quot;{left}&quot; y=&quot;28&quot; font-size=&quot;17&quot; font-weight=&quot;600&quot; fill=&quot;#0b0b0b&quot;&gt;&#x27;
+        &quot;Retention by signup cohort&lt;/text&gt;&quot;,
+        # The subtitle states the definition and that the data is synthetic.
+        f&#x27;&lt;text x=&quot;{left}&quot; y=&quot;48&quot; font-size=&quot;12&quot; fill=&quot;#52514e&quot;&gt;&#x27;
+        &quot;% of accounts with no cancel event, by days since signup (synthetic data)&lt;/text&gt;&quot;,
+    ]
+    for pct in range(0, 101, 25):  # quiet horizontal gridlines every 25%
+        parts.append(f&#x27;&lt;line x1=&quot;{left}&quot; x2=&quot;{left + plot_w}&quot; y1=&quot;{y(pct)}&quot; y2=&quot;{y(pct)}&quot; &#x27;
+                     &#x27;stroke=&quot;#e4e3df&quot; stroke-width=&quot;1&quot;/&gt;&#x27;)
+        # Y-axis tick label, right-aligned against the plot edge.
+        parts.append(f&#x27;&lt;text x=&quot;{left - 8}&quot; y=&quot;{y(pct) + 4}&quot; font-size=&quot;11&quot; fill=&quot;#52514e&quot; &#x27;
+                     f&#x27;text-anchor=&quot;end&quot;&gt;{pct}%&lt;/text&gt;&#x27;)
+    for day in [0] + DAYS:  # X-axis tick labels at the four checkpoints
+        parts.append(f&#x27;&lt;text x=&quot;{x(day)}&quot; y=&quot;{top + plot_h + 20}&quot; font-size=&quot;11&quot; fill=&quot;#52514e&quot; &#x27;
+                     f&#x27;text-anchor=&quot;middle&quot;&gt;Day {day}&lt;/text&gt;&#x27;)
+    # X-axis title, centred under the plot.
+    parts.append(f&#x27;&lt;text x=&quot;{left + plot_w / 2}&quot; y=&quot;{height - 12}&quot; font-size=&quot;12&quot; fill=&quot;#52514e&quot; &#x27;
+                 &#x27;text-anchor=&quot;middle&quot;&gt;Days since signup&lt;/text&gt;&#x27;)
+
+    for i, (month, row) in enumerate(sorted(rows.items())):  # one line per cohort, oldest first
+        color = COLORS[i % len(COLORS)]  # colour follows the cohort in a fixed order
+        # Every cohort starts at 100% on day 0, then the three exported checkpoints follow.
+        points = [(0, 100.0)] + [(d, float(row[f&quot;retention_{d}d_pct&quot;])) for d in DAYS]
+        path = &quot; &quot;.join(f&quot;{x(d):.1f},{y(p):.1f}&quot; for d, p in points)  # &quot;x,y x,y ...&quot; for polyline
+        parts.append(f&#x27;&lt;polyline points=&quot;{path}&quot; fill=&quot;none&quot; stroke=&quot;{color}&quot; stroke-width=&quot;2&quot; &#x27;
+                     &#x27;stroke-linejoin=&quot;round&quot;/&gt;&#x27;)  # thin 2px line
+        for d, p in points:  # 8px markers with a surface ring; hovering shows the exact value
+            parts.append(f&#x27;&lt;circle cx=&quot;{x(d):.1f}&quot; cy=&quot;{y(p):.1f}&quot; r=&quot;4&quot; fill=&quot;{color}&quot; &#x27;
+                         f&#x27;stroke=&quot;#fcfcfb&quot; stroke-width=&quot;2&quot;&gt;&lt;title&gt;{escape(month)} cohort, &#x27;
+                         f&#x27;day {d}: {p:.1f}%&lt;/title&gt;&lt;/circle&gt;&#x27;)
+        last = points[-1][1]  # the 90-day value, which is the headline comparison
+        # Direct label at the line end, in ink colour rather than the series colour.
+        parts.append(f&#x27;&lt;text x=&quot;{x(90) + 10}&quot; y=&quot;{y(last) + 4}&quot; font-size=&quot;12&quot; fill=&quot;#0b0b0b&quot;&gt;&#x27;
+                     f&#x27;{escape(month)} · {last:.0f}%&lt;/text&gt;&#x27;)
+        lx = left + i * 110  # legend entries sit side by side under the subtitle
+        parts.append(f&#x27;&lt;rect x=&quot;{lx}&quot; y=&quot;56&quot; width=&quot;10&quot; height=&quot;10&quot; rx=&quot;2&quot; fill=&quot;{color}&quot;/&gt;&#x27;)
+        # The legend shows the cohort size, because n=10 is the main caveat.
+        parts.append(f&#x27;&lt;text x=&quot;{lx + 15}&quot; y=&quot;65&quot; font-size=&quot;11&quot; fill=&quot;#52514e&quot;&gt;&#x27;
+                     f&#x27;{escape(month)} (n={row[&quot;cohort_accounts&quot;]})&lt;/text&gt;&#x27;)
+    parts.append(&quot;&lt;/svg&gt;&quot;)  # close the root element
+    return &quot;\n&quot;.join(parts) + &quot;\n&quot;
+
+
+def read_plotted(svg_path):
+    &quot;&quot;&quot;Read the plotted checkpoint values back out of a written chart.
+
+    Args:
+        svg_path: Path to the SVG written by build_svg.
+
+    Returns:
+        A dict mapping (cohort_month, day) to the plotted percentage, day 0 excluded.
+    &quot;&quot;&quot;
+    text = svg_path.read_text(encoding=&quot;utf-8&quot;)  # read the file actually on disk, not the string in memory
+    # Day 0 is the fixed 100% starting point, not a value from the export, so skip it.
+    return {(m, int(d)): float(p) for m, d, p in POINT_TITLE.findall(text) if d != &quot;0&quot;}
+
+
+def main():
+    &quot;&quot;&quot;Verify the export, write the SVG chart, and check the chart against the export.
+
+    Returns:
+        None. Exits with status 1 if either check fails.
+    &quot;&quot;&quot;
+    # Default paths follow the project layout; arguments can override each one.
+    export_path = Path(sys.argv[1]) if len(sys.argv) &gt; 1 else ROOT / &quot;exports&quot; / &quot;cohort_summary.csv&quot;
+    db_path = Path(sys.argv[2]) if len(sys.argv) &gt; 2 else ROOT / &quot;subscriptions.db&quot;
+    out_path = Path(sys.argv[3]) if len(sys.argv) &gt; 3 else ROOT / &quot;chart&quot; / &quot;retention_chart.svg&quot;
+
+    exported = read_export(export_path)  # what DBeaver wrote
+    queried = run_query(db_path)  # what the database says now
+    problems = verify(exported, queried)  # Check A: export compared with the query
+    for problem in problems:  # list each mismatch above the FAIL line
+        print(&quot;  mismatch: &quot; + problem)
+    compared = sum(len(row) - 1 for row in queried.values())  # 7 value columns x 3 cohorts = 21
+    print(f&quot;[{&#x27;FAIL&#x27; if problems else &#x27;PASS&#x27;}] export matches cohort_summary.sql &quot;
+          f&quot;({compared} values compared, tolerance {TOLERANCE})&quot;)
+    if problems:  # never chart numbers that do not match the query
+        sys.exit(1)
+
+    # Print the exact values being plotted, so they can be read against the chart on camera.
+    print(f&quot;{&#x27;cohort&#x27;:&lt;9}{&#x27;n&#x27;:&gt;4}{&#x27;30d %&#x27;:&gt;8}{&#x27;60d %&#x27;:&gt;8}{&#x27;90d %&#x27;:&gt;8}&quot;)
+    for month, row in sorted(exported.items()):
+        print(f&quot;{month:&lt;9}{row[&#x27;cohort_accounts&#x27;]:&gt;4}&quot;
+              + &quot;&quot;.join(f&quot;{float(row[f&#x27;retention_{d}d_pct&#x27;]):&gt;8.1f}&quot; for d in DAYS))
+    out_path.write_text(build_svg(exported), encoding=&quot;utf-8&quot;)  # SVG is plain text, with no plotting library
+
+    plotted = read_plotted(out_path)  # Check B: what the chart file actually shows
+    # Every (cohort, checkpoint) value that should appear on the chart.
+    expected = {(m, d): float(row[f&quot;retention_{d}d_pct&quot;]) for m, row in exported.items() for d in DAYS}
+    chart_ok = plotted.keys() == expected.keys() and all(  # same points, and none missing or extra
+        abs(plotted[k] - expected[k]) &lt;= TOLERANCE for k in expected)  # with the same values
+    print(f&quot;[{&#x27;PASS&#x27; if chart_ok else &#x27;FAIL&#x27;}] chart values match export &quot;
+          f&quot;({len(plotted)} points read back from {out_path.name})&quot;)
+    if not chart_ok:
+        sys.exit(1)
+
+
+if __name__ == &quot;__main__&quot;:  # run only when executed directly
+    main()
+</code></pre>
+
+    <div class="note">Narration tip: loader &mdash; FK pragma, load order, reconciliation. Chart &mdash; it checks the export against the query before drawing, then reads the chart back.</div>
+  </div>
+</div>
+
+<footer>Subscription Cohort Retention &mdash; Task Report &middot; generated for planning the recorded walkthrough &middot; Task - CC8EF7496379488FA9B4FC792BBCBADC</footer>
+
+<script>
+  function showTab(id){
+    document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+    var btns = document.querySelectorAll('.tab-btn');
+    for (var i = 0; i < btns.length; i++) {
+      if (btns[i].getAttribute('onclick').indexOf(id) !== -1) {
+        btns[i].classList.add('active');
+      }
+    }
+  }
+
+  function escChar(c){
+    if (c === '&') return '&amp;';
+    if (c === '<') return '&lt;';
+    if (c === '>') return '&gt;';
+    return c;
+  }
+  function escStr(s){
+    var out = '';
+    for (var k = 0; k < s.length; k++) out += escChar(s[k]);
+    return out;
+  }
+
+  // Minimal Python-aware colorizer: walks the raw source text once, treats
+  // anything inside a string literal (single, double, or triple-quoted) as
+  // plain code so a '#' inside a string is never mistaken for a comment,
+  // then wraps real comments/docstrings for display.
+  function colorizePython(src){
+    var i = 0, n = src.length, out = '';
+    while (i < n) {
+      var c = src[i];
+      if (c === '#') {
+        var j = src.indexOf('\n', i);
+        if (j === -1) j = n;
+        out += '<span class="cmt">' + escStr(src.slice(i, j)) + '</span>';
+        i = j;
+        continue;
+      }
+      if ((c === '"' || c === "'") && src[i+1] === c && src[i+2] === c) {
+        var q = c + c + c;
+        var j2 = src.indexOf(q, i + 3);
+        j2 = (j2 === -1) ? n : j2 + 3;
+        out += '<span class="doc">' + escStr(src.slice(i, j2)) + '</span>';
+        i = j2;
+        continue;
+      }
+      if (c === '"' || c === "'") {
+        var q2 = c, j3 = i + 1;
+        while (j3 < n && src[j3] !== q2) { j3 += (src[j3] === '\\') ? 2 : 1; }
+        j3 = Math.min(j3 + 1, n);
+        out += escStr(src.slice(i, j3));
+        i = j3;
+        continue;
+      }
+      out += escChar(c);
+      i += 1;
+    }
+    var lines = out.split('\n');
+    for (var li = 0; li < lines.length; li++) {
+      if (/^\s*<span class="cmt">/.test(lines[li])) {
+        lines[li] = lines[li].replace(/^(\s*)<span class="cmt">/, '$1<span class="cmt cmt-line">');
+      }
+    }
+    return lines.join('\n');
+  }
+
+  document.querySelectorAll('code.py-src').forEach(function(el){
+    el.innerHTML = colorizePython(el.textContent);
+  });
+</script>
+
+</body>
+</html>

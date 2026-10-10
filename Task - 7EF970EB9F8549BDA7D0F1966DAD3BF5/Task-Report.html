@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Streaming Quantile Sketch — Task Report</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --panel:#ffffff; --ink:#1b1f24; --sub:#5b6472;
+    --line:#e2e5ea; --accent:#3457d5; --accent-soft:#eef1fd;
+    --good:#1a7f4e; --warn:#b4530a; --bad:#b3261e;
+    --code-bg:#1e2228; --code-ink:#e7eaf0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Segoe UI',Calibri,Arial,sans-serif;
+    line-height:1.55;
+  }
+  header{
+    background:linear-gradient(135deg,#2a3f8f,#3457d5);
+    color:#fff; padding:28px 36px;
+  }
+  header h1{margin:0 0 6px; font-size:1.6rem;}
+  header p{margin:0; opacity:.9; font-size:.92rem;}
+  header .meta{margin-top:10px; font-size:.8rem; opacity:.8;}
+  .wrap{max-width:980px; margin:0 auto; padding:0 20px 60px;}
+  .tabs{
+    display:flex; gap:4px; margin-top:-1px; position:sticky; top:0;
+    background:var(--bg); padding:16px 0 0; z-index:5;
+  }
+  .tab-btn{
+    flex:1; padding:12px 14px; border:1px solid var(--line);
+    border-bottom:none; background:var(--panel); color:var(--sub);
+    font-size:.95rem; font-weight:600; cursor:pointer;
+    border-radius:10px 10px 0 0; transition:.15s;
+  }
+  .tab-btn:hover{color:var(--accent);}
+  .tab-btn.active{color:var(--accent); background:var(--panel); box-shadow:0 -2px 0 var(--accent) inset;}
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:0 0 12px 12px;
+    padding:28px 32px; display:none;
+  }
+  .panel.active{display:block;}
+  h2{font-size:1.25rem; margin-top:0; color:var(--accent);}
+  h3{font-size:1.02rem; margin-top:28px; color:var(--ink);}
+  .pill{
+    display:inline-block; font-size:.72rem; font-weight:700; letter-spacing:.03em;
+    padding:3px 9px; border-radius:999px; background:var(--accent-soft); color:var(--accent);
+    text-transform:uppercase; margin-right:6px;
+  }
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:.92rem;}
+  th,td{border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top;}
+  th{background:var(--accent-soft); color:var(--accent);}
+  code, pre{font-family:Consolas,'Courier New',monospace;}
+  pre{
+    background:var(--code-bg); color:var(--code-ink); padding:14px 16px;
+    border-radius:8px; overflow-x:auto; font-size:.84rem; line-height:1.5;
+  }
+  code.inline{background:var(--accent-soft); color:var(--accent); padding:1px 6px; border-radius:4px;}
+  ul, ol{padding-left:22px;}
+  li{margin-bottom:6px;}
+  .timeline{list-style:none; padding:0; margin:14px 0;}
+  .timeline li{
+    position:relative; padding:10px 14px 10px 86px; border-left:3px solid var(--accent);
+    margin-bottom:6px; background:#fafbfd; border-radius:0 8px 8px 0;
+  }
+  .timeline li .t{
+    position:absolute; left:0; top:10px; width:76px; text-align:right;
+    font-weight:700; color:var(--accent); font-size:.82rem; padding-right:10px;
+  }
+  .flag-start{color:var(--good); font-weight:700;}
+  .flag-end{color:var(--bad); font-weight:700;}
+  blockquote{
+    border-left:4px solid var(--accent); margin:0; padding:4px 0 4px 16px;
+    color:var(--ink); background:#fafbfd; border-radius:0 6px 6px 0; white-space:pre-wrap;
+    font-size:.92rem;
+  }
+  .note{
+    border:1px dashed var(--line); border-radius:8px; padding:12px 14px; font-size:.86rem;
+    color:var(--sub); background:#fcfcfd; margin-top:10px;
+  }
+  footer{text-align:center; color:var(--sub); font-size:.78rem; padding:20px;}
+  .block-title{
+    margin-top:30px; padding:6px 10px; background:var(--accent-soft); color:var(--accent);
+    border-radius:6px; font-weight:700; font-size:.92rem;
+  }
+  /* Comment highlighting inside code blocks, diff-style */
+  .cmt{ color:#f2a65a; }
+  .cmt-line{
+    display:block; background:rgba(180,83,10,.22);
+    border-left:3px solid var(--warn); margin:0 0 0 -16px; padding-left:13px;
+  }
+  .doc{ color:#9fb3c8; font-style:italic; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Streaming Quantile Sketch — Task Report</h1>
+  <p>Add a KLL streaming quantile summary to a fictional telemetry tool, check its p50/p95 against exact quantiles on four fixed-seed streams, and document the accuracy/memory trade-off &mdash; all in Visual Studio Code.</p>
+  <div class="meta">Task - 7EF970EB9F8549BDA7D0F1966DAD3BF5 &nbsp;&middot;&nbsp; Prepared: 2026-10-11 &nbsp;&middot;&nbsp; Status: Ready to record</div>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('analysis')">Analysis</button>
+    <button class="tab-btn" onclick="showTab('script')">Script</button>
+    <button class="tab-btn" onclick="showTab('code')">Code Walkthrough</button>
+    <button class="tab-btn" onclick="showTab('task')">Task</button>
+  </div>
+
+  <!-- ANALYSIS -->
+  <div id="analysis" class="panel active">
+    <h2>What this task actually is</h2>
+    <p><span class="pill">Context</span> The telemetry tool computes p50/p95 by sorting the whole stream, so it has to keep every value. You add one established sketch (KLL) that keeps a few hundred items no matter how long the stream is. Then you prove it against the exact function on uniform, skewed, constant and sorted streams, and write down what it costs and where it breaks.</p>
+
+    <h3>The deliverables</h3>
+    <table>
+      <tr><th>Deliverable</th><th>Form</th><th>Purpose</th></tr>
+      <tr><td>Quantile-summary implementation</td><td><code class="inline">kll_sketch.py</code>, about 100 lines, standard library only</td><td>KLL sketch: <code class="inline">update</code>, <code class="inline">quantile</code>, <code class="inline">memory_bound</code> (3k+64), <code class="inline">digest</code> (state fingerprint)</td></tr>
+      <tr><td>Reproducible comparison script</td><td><code class="inline">compare_quantiles.py</code></td><td>Fixed seeds (stream 7, sketch 42). Runs 4 streams &times; n = 1k/10k/100k &times; k = 50/100/200, prints pass/fail per check, about 7 s</td></tr>
+      <tr><td>CSV results</td><td><code class="inline">results/quantile_comparison.csv</code>, 36 rows</td><td>exact vs estimate, abs error, tolerance, monotonic, peak/bound, digest, reproducible</td></tr>
+      <tr><td>Accuracy plot</td><td><code class="inline">results/accuracy_plot.svg</code></td><td>Abs error vs stream length for p50 and p95 against the 35 ms tolerance line. SVG because matplotlib isn't installed. It renders in VS Code's Markdown preview through the README</td></tr>
+      <tr><td>README</td><td><code class="inline">README.md</code></td><td>How the sketch works, the reasoning behind the tolerance, the trade-off table, the memory bound, and limits</td></tr>
+    </table>
+
+    <h3>Inputs already defined</h3>
+    <ul>
+      <li><code class="inline">starting_point/telemetry_stats.py</code>: <code class="inline">exact_quantile(values, q)</code>, nearest-rank (<code class="inline">sorted[ceil(q&middot;n)-1]</code>). The sketch uses the same rule, so the constant stream comes out exactly 0 error.</li>
+      <li><code class="inline">starting_point/streams.py</code>: <code class="inline">generate_stream(n, seed)</code>, uniform latencies in the bounded domain 0&ndash;1000 ms.</li>
+      <li><code class="inline">starting_point/main.py</code>: prints exact p50/p95 (shows the &ldquo;before&rdquo; state).</li>
+      <li>Finished, verified solution to type from: <code class="inline">reference/</code>, including <code class="inline">*_annotated.py</code> narration copies.</li>
+    </ul>
+
+    <h3>What "done" looks like</h3>
+    <ul>
+      <li><strong>Error vs tolerance</strong>: CSV <code class="inline">abs_err_p50</code>/<code class="inline">abs_err_p95</code> &le; 35 ms, column <code class="inline">within_tolerance</code>. Worst at k=200 is 9.2 ms (skewed p95, n=10k).</li>
+      <li><strong>Monotonic</strong>: column <code class="inline">monotonic</code>, est p50 &le; est p95, True on every row.</li>
+      <li><strong>Memory bound as n grows</strong>: <code class="inline">peak_items</code> goes 423 &rarr; 550 &rarr; 588 for n = 1k &rarr; 100k, always &le; <code class="inline">memory_bound</code> 664. The peak is tracked on every update, not just at the end.</li>
+      <li><strong>Reproducible</strong>: column <code class="inline">reproducible</code> (SHA-256 digest of the full sketch state, built twice). Re-running the script gives byte-identical CSV and SVG (<code class="inline">Get-FileHash</code> before/after).</li>
+      <li>Terminal ends with <code class="inline">k=200: ALL CHECKS PASS</code> and the k = 50/100/200 trade-off lines (153/298/588 items, worst error 12.4/4.3/1.8 ms).</li>
+    </ul>
+    <h3>How the work flows in Visual Studio Code</h3>
+    <p>Only one app is declared, so everything happens in one VS Code window. Explorer shows the starting files. The editor is where you create <code class="inline">kll_sketch.py</code>, then <code class="inline">compare_quantiles.py</code>, then <code class="inline">README.md</code>. The integrated terminal runs the script, re-runs it, and hashes the outputs. The CSV opens in an editor tab, and the plot shows in the README's Markdown preview (Ctrl+Shift+V).</p>
+  </div>
+
+  <!-- SCRIPT -->
+  <div id="script" class="panel">
+    <h2>Recording script &mdash; ~18 min flow</h2>
+    <p>This tab is the run-sheet: what to have open <em>before</em> hitting record, the exact order of actions during the take, and how to close cleanly so the recording is usable without re-takes.</p>
+
+    <h3>Before pressing record (prep &mdash; do this now, not on camera)</h3>
+    <ul>
+      <li>Copy <code class="inline">Streaming-Quantile-Sketch\starting_point\</code> to a clean working folder (e.g. <code class="inline">telemetry-tool\</code>) and open <em>that</em> folder in VS Code. The <code class="inline">reference\</code> folder must not appear in the Explorer on camera.</li>
+      <li>Keep this report (Code Walkthrough tab) or the <code class="inline">reference\*_annotated.py</code> files on a second screen to type from.</li>
+      <li>Check <code class="inline">python --version</code> (3.8+) in the VS Code terminal. No packages are needed.</li>
+      <li>Do one dry run of <code class="inline">reference\compare_quantiles.py</code> so you know the output looks like the Done list above.</li>
+      <li>Close other VS Code windows/tabs; set a readable font size (zoom 1&ndash;2 steps).</li>
+    </ul>
+
+    <h3>Start-of-recording checklist</h3>
+    <ol>
+      <li>Close anything containing real/sensitive data or unrelated personal info &mdash; only the sample/demo materials should be on screen.</li>
+      <li>Arrange windows so the screen recorder's capture area shows a full app at a time.</li>
+      <li><span class="flag-start">Press record.</span> Wait one second of silence, then state the task name and the one-sentence goal out loud.</li>
+    </ol>
+
+    <h3>On-camera flow</h3>
+    <ul class="timeline">
+      <li><span class="t">0:00&ndash;1:30</span><strong>Starting point.</strong> Show <code class="inline">telemetry_stats.py</code> and <code class="inline">streams.py</code>. Run <code class="inline">python main.py</code>. Point out that exact p50/p95 sorts the whole stream, and there's no approximate summary yet.</li>
+      <li><span class="t">1:30&ndash;7:00</span><strong>Create <code class="inline">kll_sketch.py</code>.</strong> Constructor (k, c, seeded RNG, levels, n/size/peak), <code class="inline">capacity</code>, <code class="inline">max_size</code>, <code class="inline">memory_bound</code> (3k+64), <code class="inline">update</code> (tracks the peak), <code class="inline">_compress</code> (sort, hold back the odd item, coin-flip offset, promote every other item), <code class="inline">quantile</code> (weighted nearest-rank), <code class="inline">digest</code>.</li>
+      <li><span class="t">7:00&ndash;11:30</span><strong>Create <code class="inline">compare_quantiles.py</code>.</strong> Constants (seeds, k, lengths, 35 ms tolerance and why), <code class="inline">build_stream</code> for the four kinds, <code class="inline">summarize</code>, <code class="inline">run_case</code> (four checks), <code class="inline">marker</code> + <code class="inline">plot_svg</code>, <code class="inline">main</code> (CSV, plot, summary).</li>
+      <li><span class="t">11:30&ndash;13:30</span><strong>Run &amp; verify.</strong> Run <code class="inline">python compare_quantiles.py</code> and read out the pass table and the trade-off lines. Open the CSV and point at <code class="inline">within_tolerance</code>, <code class="inline">monotonic</code>, <code class="inline">peak_items</code>/<code class="inline">memory_bound</code>, <code class="inline">reproducible</code>. Run <code class="inline">Get-FileHash results\*</code>, re-run the script, and hash again to show identical hashes.</li>
+      <li><span class="t">13:30&ndash;17:00</span><strong>Write <code class="inline">README.md</code>.</strong> Files, how it works, checks, why 35 ms, results with the plot embed, trade-off table, memory bound, limits. Open the Markdown preview (Ctrl+Shift+V) so the plot renders.</li>
+      <li><span class="t">17:00&ndash;18:00</span><strong>Wrap-up.</strong> Recap: about 590 items instead of 100,000, worst error 9.2 ms against a 35 ms budget, and k is the accuracy/memory knob. Say the closing line.</li>
+    </ul>
+
+    <h3>End-of-recording checklist</h3>
+    <ol>
+      <li>Say a clear closing line so the edit has a natural out-point.</li>
+      <li><span class="flag-end">Stop recording</span> &mdash; wait one second after the closing line before stopping.</li>
+      <li>Save the recording immediately with a clear filename.</li>
+      <li>Save every artifact for real and confirm each persisted (reopen each one quickly).</li>
+      <li>Scrub the first/last 10 seconds to confirm clean in/out points.</li>
+    </ol>
+
+    <div class="note"><strong>Honest timing:</strong> the task states no time budget, so the minute marks above use the skill's default 15&ndash;20 min window. But the files you type on camera total about 430 lines: <code class="inline">kll_sketch.py</code> 116, <code class="inline">compare_quantiles.py</code> 208 (about 64 of them in <code class="inline">plot_svg</code>), and <code class="inline">README.md</code> 106. At a normal typing pace that is closer to <strong>45&ndash;60 min</strong> of recording. Either accept the longer take (scale each segment in proportion) or trim the code before recording. The script takes about 7 s per run, and you run it twice.</div>
+  </div>
+
+  <!-- CODE WALKTHROUGH (omit this whole panel if the task has no code deliverable) -->
+  <div id="code" class="panel">
+    <h2>Code &mdash; full source</h2>
+    <p>Two new files (the starting-point files <code class="inline">telemetry_stats.py</code>, <code class="inline">streams.py</code> and <code class="inline">main.py</code> already exist and are not edited). Each appears twice, verified to produce byte-identical output: a clean reusable version, and an annotated copy with a real comment on every meaningful line.</p>
+
+    <h3>kll_sketch.py</h3>
+    <div class="block-title">Clean version &mdash; Streaming-Quantile-Sketch/reference/kll_sketch.py (the reusable deliverable)</div>
+    <p>No inline teaching comments beyond function docstrings &mdash; kept lean so it stays easy to scan and maintain.</p>
+    <pre style="max-height:420px; overflow:auto;"><code class="py-src">&quot;&quot;&quot;KLL streaming quantile sketch (Karnin, Lang &amp; Liberty, 2016).&quot;&quot;&quot;
+
+import hashlib
+import math
+import random
+
+
+class KLLSketch:
+    &quot;&quot;&quot;Approximate quantile summary that keeps a bounded number of items.
+
+    Items live in a stack of compactors. An item at level h stands for 2**h
+    original values. When the sketch is full, the first over-capacity level is
+    sorted and every other item (random offset) is promoted one level up.
+    &quot;&quot;&quot;
+
+    def __init__(self, k=200, c=2 / 3, seed=0):
+        &quot;&quot;&quot;Create an empty sketch.
+
+        Args:
+            k: Accuracy parameter; capacity of the top level. Larger k means
+                lower error and more memory.
+            c: Capacity shrink factor per level below the top (0.5 &lt; c &lt; 1).
+            seed: Seed for the compaction coin flips, for reproducible summaries.
+        &quot;&quot;&quot;
+        self.k = k
+        self.c = c
+        self.rng = random.Random(seed)
+        self.levels = [[]]
+        self.n = 0
+        self.size = 0
+        self.peak_size = 0
+        self.limit = self.max_size()
+
+    def capacity(self, h):
+        &quot;&quot;&quot;Return how many items level h may hold before it must compact.
+
+        Args:
+            h: Level index, 0 being the bottom level.
+
+        Returns:
+            max(2, ceil(k * c ** depth)), where depth counts levels below the top.
+        &quot;&quot;&quot;
+        depth = len(self.levels) - h - 1
+        return max(2, math.ceil(self.k * self.c ** depth))
+
+    def max_size(self):
+        &quot;&quot;&quot;Return the total capacity across all current levels.
+
+        Returns:
+            The item count at which the sketch compacts.
+        &quot;&quot;&quot;
+        return sum(self.capacity(h) for h in range(len(self.levels)))
+
+    def memory_bound(self):
+        &quot;&quot;&quot;Return the hard cap on retained items for streams under 2**32 values.
+
+        Returns:
+            3k + 64: the level capacities sum to under 3k + 2H, and the level
+            count H never exceeds log2(n) &lt;= 32.
+        &quot;&quot;&quot;
+        return 3 * self.k + 64
+
+    def update(self, value):
+        &quot;&quot;&quot;Add one value from the stream.
+
+        Args:
+            value: The number to summarize.
+        &quot;&quot;&quot;
+        self.levels[0].append(value)
+        self.n += 1
+        self.size += 1
+        self.peak_size = max(self.peak_size, self.size)
+        if self.size &gt;= self.limit:
+            self._compress()
+
+    def _compress(self):
+        &quot;&quot;&quot;Compact the first level that is at or over its capacity.&quot;&quot;&quot;
+        for h, level in enumerate(self.levels):
+            if len(level) &gt;= self.capacity(h):
+                if h + 1 == len(self.levels):
+                    self.levels.append([])
+                    self.limit = self.max_size()
+                level.sort()
+                keep = [level.pop()] if len(level) % 2 else []
+                offset = self.rng.randint(0, 1)
+                self.levels[h + 1].extend(level[offset::2])
+                self.levels[h] = keep
+                self.size = sum(len(lv) for lv in self.levels)
+                return
+
+    def quantile(self, q):
+        &quot;&quot;&quot;Estimate a quantile using the same nearest-rank rule as exact_quantile.
+
+        Args:
+            q: Quantile in the range (0, 1].
+
+        Returns:
+            The retained item whose cumulative weight first reaches ceil(q * n).
+        &quot;&quot;&quot;
+        weighted = sorted((v, 2 ** h) for h, lv in enumerate(self.levels) for v in lv)
+        target = max(1, math.ceil(q * self.n))
+        total = 0
+        for value, weight in weighted:
+            total += weight
+            if total &gt;= target:
+                return value
+        return weighted[-1][0]
+
+    def digest(self):
+        &quot;&quot;&quot;Return a fingerprint of the full sketch state.
+
+        Returns:
+            A short SHA-256 hex digest of every level&#x27;s retained items.
+        &quot;&quot;&quot;
+        state = repr([sorted(lv) for lv in self.levels]).encode()
+        return hashlib.sha256(state).hexdigest()[:16]
+</code></pre>
+
+    <div class="block-title">Annotated version &mdash; Streaming-Quantile-Sketch/reference/kll_sketch_annotated.py (same logic, commented line by line)</div>
+    <p>Identical behavior: stdout, CSV and SVG are byte-identical to the clean version's. Use this copy while narrating the build on camera.</p>
+    <pre style="max-height:650px; overflow:auto;"><code class="py-src">&quot;&quot;&quot;KLL streaming quantile sketch (Karnin, Lang &amp; Liberty, 2016).&quot;&quot;&quot;
+
+# hashlib gives a stable fingerprint of the sketch state (Python&#x27;s hash() is salted per run)
+import hashlib
+# math.ceil is used for level capacities and for the nearest-rank target
+import math
+# random.Random gives a private, seedable generator for the compaction coin flips
+import random
+
+
+class KLLSketch:
+    &quot;&quot;&quot;Approximate quantile summary that keeps a bounded number of items.
+
+    Items live in a stack of compactors. An item at level h stands for 2**h
+    original values. When the sketch is full, the first over-capacity level is
+    sorted and every other item (random offset) is promoted one level up.
+    &quot;&quot;&quot;
+
+    def __init__(self, k=200, c=2 / 3, seed=0):
+        &quot;&quot;&quot;Create an empty sketch.
+
+        Args:
+            k: Accuracy parameter; capacity of the top level. Larger k means
+                lower error and more memory.
+            c: Capacity shrink factor per level below the top (0.5 &lt; c &lt; 1).
+            seed: Seed for the compaction coin flips, for reproducible summaries.
+        &quot;&quot;&quot;
+        # k is the one knob: it trades accuracy against memory
+        self.k = k
+        # c shrinks each lower level&#x27;s capacity, so most space goes to the heavy top levels
+        self.c = c
+        # Own seeded generator, so the same seed always gives the same summary
+        self.rng = random.Random(seed)
+        # Start with a single empty level (level 0 = raw values, weight 1)
+        self.levels = [[]]
+        # n counts every value ever seen; it is the total weight of the sketch
+        self.n = 0
+        # size counts items actually held in memory right now
+        self.size = 0
+        # peak_size records the highest size ever reached, for the memory check
+        self.peak_size = 0
+        # Cache the compaction threshold; it only changes when a level is added
+        self.limit = self.max_size()
+
+    def capacity(self, h):
+        &quot;&quot;&quot;Return how many items level h may hold before it must compact.
+
+        Args:
+            h: Level index, 0 being the bottom level.
+
+        Returns:
+            max(2, ceil(k * c ** depth)), where depth counts levels below the top.
+        &quot;&quot;&quot;
+        # depth 0 is the top level; deeper (lower) levels get geometrically smaller capacity
+        depth = len(self.levels) - h - 1
+        # The top level holds k items; lower levels shrink by c each step, never below 2
+        return max(2, math.ceil(self.k * self.c ** depth))
+
+    def max_size(self):
+        &quot;&quot;&quot;Return the total capacity across all current levels.
+
+        Returns:
+            The item count at which the sketch compacts.
+        &quot;&quot;&quot;
+        # Sum of every level&#x27;s capacity = the most items the sketch holds before compacting
+        return sum(self.capacity(h) for h in range(len(self.levels)))
+
+    def memory_bound(self):
+        &quot;&quot;&quot;Return the hard cap on retained items for streams under 2**32 values.
+
+        Returns:
+            3k + 64: the level capacities sum to under 3k + 2H, and the level
+            count H never exceeds log2(n) &lt;= 32.
+        &quot;&quot;&quot;
+        # Geometric series k*(1 + c + c^2 + ...) &lt; 3k, plus up to 2 per level for rounding/floors
+        return 3 * self.k + 64
+
+    def update(self, value):
+        &quot;&quot;&quot;Add one value from the stream.
+
+        Args:
+            value: The number to summarize.
+        &quot;&quot;&quot;
+        # Every new value enters the bottom level with weight 1
+        self.levels[0].append(value)
+        # One more value seen in the stream
+        self.n += 1
+        # One more item held in memory
+        self.size += 1
+        # Track the high-water mark before any compaction shrinks it
+        self.peak_size = max(self.peak_size, self.size)
+        # Full? Compact one level to free space
+        if self.size &gt;= self.limit:
+            # Halve the first over-capacity level
+            self._compress()
+
+    def _compress(self):
+        &quot;&quot;&quot;Compact the first level that is at or over its capacity.&quot;&quot;&quot;
+        # Walk from the bottom up and compact the first level that is full
+        for h, level in enumerate(self.levels):
+            # This level has reached its capacity, so it must compact
+            if len(level) &gt;= self.capacity(h):
+                # Compacting the top level needs a new level above it
+                if h + 1 == len(self.levels):
+                    # Add a new top level; every capacity shifts, so...
+                    self.levels.append([])
+                    # ...recompute the cached threshold
+                    self.limit = self.max_size()
+                # Sort so that &quot;every other item&quot; keeps the rank structure intact
+                level.sort()
+                # With an odd count, hold back one item so the weight stays exact
+                keep = [level.pop()] if len(level) % 2 else []
+                # Coin flip: keep the even or the odd positions (this is where the seed matters)
+                offset = self.rng.randint(0, 1)
+                # Half the items move up one level, each now standing for twice as many values
+                self.levels[h + 1].extend(level[offset::2])
+                # This level keeps only the held-back item (if any)
+                self.levels[h] = keep
+                # Recount items held after the compaction
+                self.size = sum(len(lv) for lv in self.levels)
+                # Only one compaction per call; that is enough to get back under the limit
+                return
+
+    def quantile(self, q):
+        &quot;&quot;&quot;Estimate a quantile using the same nearest-rank rule as exact_quantile.
+
+        Args:
+            q: Quantile in the range (0, 1].
+
+        Returns:
+            The retained item whose cumulative weight first reaches ceil(q * n).
+        &quot;&quot;&quot;
+        # Pair every retained item with its weight 2**level, then sort by value
+        weighted = sorted((v, 2 ** h) for h, lv in enumerate(self.levels) for v in lv)
+        # Same nearest-rank target the exact function uses: ceil(q * n)
+        target = max(1, math.ceil(q * self.n))
+        # Running total of weight seen so far
+        total = 0
+        # Walk the items in value order
+        for value, weight in weighted:
+            # Each item covers &#x27;weight&#x27; original values
+            total += weight
+            # The first item that reaches the target rank is the estimate
+            if total &gt;= target:
+                return value
+        # Fallback: return the largest item (only reachable through rounding at q = 1)
+        return weighted[-1][0]
+
+    def digest(self):
+        &quot;&quot;&quot;Return a fingerprint of the full sketch state.
+
+        Returns:
+            A short SHA-256 hex digest of every level&#x27;s retained items.
+        &quot;&quot;&quot;
+        # repr of the sorted levels is deterministic text describing the whole summary
+        state = repr([sorted(lv) for lv in self.levels]).encode()
+        # A 16-hex-char SHA-256 prefix is enough to show two runs match
+        return hashlib.sha256(state).hexdigest()[:16]
+</code></pre>
+
+    <h3>compare_quantiles.py</h3>
+    <div class="block-title">Clean version &mdash; Streaming-Quantile-Sketch/reference/compare_quantiles.py (the reusable deliverable)</div>
+    <p>No inline teaching comments beyond function docstrings &mdash; kept lean so it stays easy to scan and maintain.</p>
+    <pre style="max-height:420px; overflow:auto;"><code class="py-src">&quot;&quot;&quot;Compare KLL sketch estimates of p50/p95 with exact quantiles; write CSV and SVG plot.&quot;&quot;&quot;
+
+import csv
+import math
+import random
+from pathlib import Path
+
+from kll_sketch import KLLSketch
+from streams import DOMAIN_MS, generate_stream
+from telemetry_stats import exact_quantile
+
+STREAM_SEED = 7
+SKETCH_SEED = 42
+CONFIGURED_K = 200
+K_SWEEP = (50, 100, 200)
+LENGTHS = (1_000, 10_000, 100_000)
+QUANTILES = (0.5, 0.95)
+TOLERANCE_MS = 35.0
+STREAM_KINDS = (&quot;uniform&quot;, &quot;skewed&quot;, &quot;constant&quot;, &quot;sorted&quot;)
+OUT_DIR = Path(__file__).parent / &quot;results&quot;
+COLORS = {&quot;uniform&quot;: &quot;#2a78d6&quot;, &quot;skewed&quot;: &quot;#eb6834&quot;, &quot;constant&quot;: &quot;#1baf7a&quot;, &quot;sorted&quot;: &quot;#eda100&quot;}
+SHAPES = {&quot;uniform&quot;: &quot;circle&quot;, &quot;skewed&quot;: &quot;square&quot;, &quot;constant&quot;: &quot;triangle&quot;, &quot;sorted&quot;: &quot;diamond&quot;}
+
+
+def build_stream(kind, n, seed):
+    &quot;&quot;&quot;Build one fixed-seed synthetic stream inside DOMAIN_MS.
+
+    Args:
+        kind: One of STREAM_KINDS.
+        n: Stream length.
+        seed: Seed so the same stream is rebuilt on every run.
+
+    Returns:
+        A list of n floats.
+    &quot;&quot;&quot;
+    if kind == &quot;uniform&quot;:
+        return generate_stream(n, seed)
+    if kind == &quot;skewed&quot;:
+        rng = random.Random(seed)
+        return [min(rng.expovariate(1 / 100), DOMAIN_MS[1]) for _ in range(n)]
+    if kind == &quot;constant&quot;:
+        return [250.0] * n
+    if kind == &quot;sorted&quot;:
+        return sorted(generate_stream(n, seed))
+    raise ValueError(f&quot;unknown stream kind: {kind}&quot;)
+
+
+def summarize(stream, k):
+    &quot;&quot;&quot;Feed a stream through a fresh sketch.
+
+    Args:
+        stream: List of values.
+        k: Sketch accuracy parameter.
+
+    Returns:
+        The populated KLLSketch.
+    &quot;&quot;&quot;
+    sketch = KLLSketch(k=k, seed=SKETCH_SEED)
+    for value in stream:
+        sketch.update(value)
+    return sketch
+
+
+def run_case(kind, n, k):
+    &quot;&quot;&quot;Compare sketch and exact quantiles for one stream, length and k.
+
+    Args:
+        kind: Stream kind.
+        n: Stream length.
+        k: Sketch accuracy parameter.
+
+    Returns:
+        A dict holding one CSV row.
+    &quot;&quot;&quot;
+    stream = build_stream(kind, n, STREAM_SEED)
+    sketch = summarize(stream, k)
+    rerun = summarize(build_stream(kind, n, STREAM_SEED), k)
+    row = {&quot;stream&quot;: kind, &quot;n&quot;: n, &quot;k&quot;: k}
+    for q in QUANTILES:
+        name = f&quot;p{round(q * 100)}&quot;
+        exact = exact_quantile(stream, q)
+        estimate = sketch.quantile(q)
+        row[f&quot;exact_{name}&quot;] = round(exact, 3)
+        row[f&quot;est_{name}&quot;] = round(estimate, 3)
+        row[f&quot;abs_err_{name}&quot;] = round(abs(estimate - exact), 3)
+    row[&quot;tolerance_ms&quot;] = TOLERANCE_MS
+    row[&quot;within_tolerance&quot;] = max(row[&quot;abs_err_p50&quot;], row[&quot;abs_err_p95&quot;]) &lt;= TOLERANCE_MS
+    row[&quot;monotonic&quot;] = sketch.quantile(0.5) &lt;= sketch.quantile(0.95)
+    row[&quot;retained_items&quot;] = sketch.size
+    row[&quot;peak_items&quot;] = sketch.peak_size
+    row[&quot;memory_bound&quot;] = sketch.memory_bound()
+    row[&quot;within_bound&quot;] = sketch.peak_size &lt;= sketch.memory_bound()
+    row[&quot;digest&quot;] = sketch.digest()
+    row[&quot;reproducible&quot;] = sketch.digest() == rerun.digest()
+    return row
+
+
+def marker(kind, x, y):
+    &quot;&quot;&quot;Return the SVG shape used for one stream, so identity is not color alone.
+
+    Args:
+        kind: Stream kind.
+        x: Center x in pixels.
+        y: Center y in pixels.
+
+    Returns:
+        An SVG element string.
+    &quot;&quot;&quot;
+    if SHAPES[kind] == &quot;circle&quot;:
+        return f&#x27;&lt;circle cx=&quot;{x:.1f}&quot; cy=&quot;{y:.1f}&quot; r=&quot;4.5&quot;/&gt;&#x27;
+    if SHAPES[kind] == &quot;square&quot;:
+        return f&#x27;&lt;rect x=&quot;{x - 4:.1f}&quot; y=&quot;{y - 4:.1f}&quot; width=&quot;8&quot; height=&quot;8&quot; rx=&quot;1&quot;/&gt;&#x27;
+    if SHAPES[kind] == &quot;triangle&quot;:
+        return f&#x27;&lt;path d=&quot;M{x:.1f},{y - 5:.1f} L{x + 5:.1f},{y + 4:.1f} L{x - 5:.1f},{y + 4:.1f} Z&quot;/&gt;&#x27;
+    return f&#x27;&lt;path d=&quot;M{x:.1f},{y - 5.5:.1f} L{x + 5.5:.1f},{y:.1f} L{x:.1f},{y + 5.5:.1f} L{x - 5.5:.1f},{y:.1f} Z&quot;/&gt;&#x27;
+
+
+def plot_svg(rows, path):
+    &quot;&quot;&quot;Draw absolute error vs stream length, one panel each for p50 and p95.
+
+    Args:
+        rows: Result rows for the configured k.
+        path: Output .svg path.
+    &quot;&quot;&quot;
+    width, height, pad_l, pad_t, pad_b, gap = 920, 400, 56, 92, 48, 70
+    panel_w = (width - 2 * pad_l - gap) / 2
+    plot_h = height - pad_t - pad_b
+    y_max = TOLERANCE_MS * 1.25
+    x_lo, x_hi = math.log10(LENGTHS[0]), math.log10(LENGTHS[-1])
+
+    def sx(left, n):
+        return left + 20 + (math.log10(n) - x_lo) / (x_hi - x_lo) * (panel_w - 110)
+
+    def sy(err):
+        return pad_t + plot_h - min(err, y_max) / y_max * plot_h
+
+    out = [
+        f&#x27;&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; viewBox=&quot;0 0 {width} {height}&quot; width=&quot;{width}&quot; height=&quot;{height}&quot; font-family=&quot;Segoe UI, Arial, sans-serif&quot;&gt;&#x27;,
+        &quot;&lt;style&gt;.bg{fill:#fcfcfb}.t1{fill:#0b0b0b}.t2{fill:#52514e}.grid{stroke:#e4e3df}.axis{stroke:#8a8984}.tol{stroke:#52514e}&quot;
+        &quot; @media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.t1{fill:#f0efec}.t2{fill:#c3c2b7}.grid{stroke:#33332f}.axis{stroke:#6d6c66}.tol{stroke:#c3c2b7}}&lt;/style&gt;&quot;,
+        f&#x27;&lt;rect class=&quot;bg&quot; width=&quot;{width}&quot; height=&quot;{height}&quot;/&gt;&#x27;,
+        f&#x27;&lt;text class=&quot;t1&quot; x=&quot;{pad_l}&quot; y=&quot;26&quot; font-size=&quot;16&quot; font-weight=&quot;600&quot;&gt;KLL sketch vs exact quantiles: absolute error (ms), k={CONFIGURED_K}, stream seed {STREAM_SEED}&lt;/text&gt;&#x27;,
+    ]
+    legend_x = pad_l
+    for kind in STREAM_KINDS:
+        out.append(f&#x27;&lt;g fill=&quot;{COLORS[kind]}&quot;&gt;{marker(kind, legend_x + 5, 48)}&lt;/g&gt;&#x27;)
+        out.append(f&#x27;&lt;text class=&quot;t2&quot; x=&quot;{legend_x + 15}&quot; y=&quot;52&quot; font-size=&quot;12&quot;&gt;{kind}&lt;/text&gt;&#x27;)
+        legend_x += 90
+    out.append(f&#x27;&lt;line class=&quot;tol&quot; x1=&quot;{legend_x + 4}&quot; y1=&quot;48&quot; x2=&quot;{legend_x + 28}&quot; y2=&quot;48&quot; stroke-width=&quot;1.5&quot; stroke-dasharray=&quot;5 4&quot;/&gt;&#x27;)
+    out.append(f&#x27;&lt;text class=&quot;t2&quot; x=&quot;{legend_x + 34}&quot; y=&quot;52&quot; font-size=&quot;12&quot;&gt;tolerance {TOLERANCE_MS:g} ms&lt;/text&gt;&#x27;)
+    for i, q in enumerate(QUANTILES):
+        name = f&quot;p{round(q * 100)}&quot;
+        left = pad_l + i * (panel_w + gap)
+        out.append(f&#x27;&lt;text class=&quot;t1&quot; x=&quot;{left}&quot; y=&quot;{pad_t - 4}&quot; font-size=&quot;13&quot; font-weight=&quot;600&quot;&gt;{name}&lt;/text&gt;&#x27;)
+        for tick in range(0, int(y_max) + 1, 10):
+            y = sy(tick)
+            out.append(f&#x27;&lt;line class=&quot;grid&quot; x1=&quot;{left}&quot; y1=&quot;{y:.1f}&quot; x2=&quot;{left + panel_w}&quot; y2=&quot;{y:.1f}&quot; stroke-width=&quot;1&quot;/&gt;&#x27;)
+            out.append(f&#x27;&lt;text class=&quot;t2&quot; x=&quot;{left - 6}&quot; y=&quot;{y + 4:.1f}&quot; font-size=&quot;11&quot; text-anchor=&quot;end&quot;&gt;{tick}&lt;/text&gt;&#x27;)
+        out.append(f&#x27;&lt;line class=&quot;axis&quot; x1=&quot;{left}&quot; y1=&quot;{sy(0):.1f}&quot; x2=&quot;{left + panel_w}&quot; y2=&quot;{sy(0):.1f}&quot; stroke-width=&quot;1&quot;/&gt;&#x27;)
+        for n in LENGTHS:
+            out.append(f&#x27;&lt;text class=&quot;t2&quot; x=&quot;{sx(left, n):.1f}&quot; y=&quot;{sy(0) + 18:.1f}&quot; font-size=&quot;11&quot; text-anchor=&quot;middle&quot;&gt;{n:,}&lt;/text&gt;&#x27;)
+        out.append(f&#x27;&lt;text class=&quot;t2&quot; x=&quot;{left + panel_w / 2:.1f}&quot; y=&quot;{height - 8}&quot; font-size=&quot;11&quot; text-anchor=&quot;middle&quot;&gt;stream length (log scale)&lt;/text&gt;&#x27;)
+        out.append(f&#x27;&lt;line class=&quot;tol&quot; x1=&quot;{left}&quot; y1=&quot;{sy(TOLERANCE_MS):.1f}&quot; x2=&quot;{left + panel_w}&quot; y2=&quot;{sy(TOLERANCE_MS):.1f}&quot; stroke-width=&quot;1.5&quot; stroke-dasharray=&quot;5 4&quot;/&gt;&#x27;)
+        labels = []
+        for kind in STREAM_KINDS:
+            points = [(sx(left, r[&quot;n&quot;]), sy(r[f&quot;abs_err_{name}&quot;]), r) for r in rows if r[&quot;stream&quot;] == kind]
+            line = &quot; &quot;.join(f&quot;{x:.1f},{y:.1f}&quot; for x, y, _ in points)
+            out.append(f&#x27;&lt;polyline points=&quot;{line}&quot; fill=&quot;none&quot; stroke=&quot;{COLORS[kind]}&quot; stroke-width=&quot;2&quot; stroke-linejoin=&quot;round&quot;/&gt;&#x27;)
+            for x, y, r in points:
+                tip = f&#x27;{kind}, n={r[&quot;n&quot;]:,}: exact {r[f&quot;exact_{name}&quot;]} ms, estimate {r[f&quot;est_{name}&quot;]} ms, error {r[f&quot;abs_err_{name}&quot;]} ms&#x27;
+                out.append(f&#x27;&lt;g fill=&quot;{COLORS[kind]}&quot;&gt;&lt;title&gt;{tip}&lt;/title&gt;{marker(kind, x, y)}&lt;/g&gt;&#x27;)
+            labels.append([points[-1][1], kind])
+        labels.sort(reverse=True)
+        for j in range(1, len(labels)):
+            labels[j][0] = min(labels[j][0], labels[j - 1][0] - 13)
+        for y, kind in labels:
+            out.append(f&#x27;&lt;text class=&quot;t2&quot; x=&quot;{sx(left, LENGTHS[-1]) + 12:.1f}&quot; y=&quot;{y + 4:.1f}&quot; font-size=&quot;11&quot;&gt;{kind}&lt;/text&gt;&#x27;)
+    out.append(&quot;&lt;/svg&gt;&quot;)
+    path.write_text(&quot;\n&quot;.join(out) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def main():
+    &quot;&quot;&quot;Run every case, write the CSV and SVG, and print a pass/fail summary.&quot;&quot;&quot;
+    OUT_DIR.mkdir(exist_ok=True)
+    rows = [run_case(kind, n, k) for k in K_SWEEP for kind in STREAM_KINDS for n in LENGTHS]
+    with open(OUT_DIR / &quot;quantile_comparison.csv&quot;, &quot;w&quot;, newline=&quot;&quot;, encoding=&quot;utf-8&quot;) as f:
+        writer = csv.DictWriter(f, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    configured = [r for r in rows if r[&quot;k&quot;] == CONFIGURED_K]
+    plot_svg(configured, OUT_DIR / &quot;accuracy_plot.svg&quot;)
+    print(f&quot;{&#x27;stream&#x27;:&lt;9}{&#x27;n&#x27;:&gt;8}{&#x27;err p50&#x27;:&gt;9}{&#x27;err p95&#x27;:&gt;9}  tol   mono  peak/bound  repro&quot;)
+    for r in configured:
+        print(f&quot;{r[&#x27;stream&#x27;]:&lt;9}{r[&#x27;n&#x27;]:&gt;8}{r[&#x27;abs_err_p50&#x27;]:&gt;9.3f}{r[&#x27;abs_err_p95&#x27;]:&gt;9.3f}  &quot;
+              f&quot;{&#x27;ok&#x27; if r[&#x27;within_tolerance&#x27;] else &#x27;FAIL&#x27;:&lt;5} {&#x27;ok&#x27; if r[&#x27;monotonic&#x27;] else &#x27;FAIL&#x27;:&lt;5}&quot;
+              f&quot;{r[&#x27;peak_items&#x27;]:&gt;4}/{r[&#x27;memory_bound&#x27;]:&lt;6} {&#x27;ok&#x27; if r[&#x27;reproducible&#x27;] else &#x27;FAIL&#x27;}&quot;)
+    checks = (&quot;within_tolerance&quot;, &quot;monotonic&quot;, &quot;within_bound&quot;, &quot;reproducible&quot;)
+    passed = all(r[c] for r in configured for c in checks)
+    print(f&quot;\nk={CONFIGURED_K}: {&#x27;ALL CHECKS PASS&#x27; if passed else &#x27;SOME CHECKS FAILED&#x27;}&quot;)
+    print(f&quot;\nAccuracy vs memory at n={LENGTHS[-1]:,} (worst error across streams):&quot;)
+    for k in K_SWEEP:
+        sweep = [r for r in rows if r[&quot;k&quot;] == k and r[&quot;n&quot;] == LENGTHS[-1]]
+        worst = max(max(r[&quot;abs_err_p50&quot;], r[&quot;abs_err_p95&quot;]) for r in sweep)
+        print(f&quot;  k={k:&lt;4} peak items {max(r[&#x27;peak_items&#x27;] for r in sweep):&gt;4}  worst abs error {worst:7.3f} ms&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+    <div class="block-title">Annotated version &mdash; Streaming-Quantile-Sketch/reference/compare_quantiles_annotated.py (same logic, commented line by line)</div>
+    <p>Identical behavior: stdout, CSV and SVG are byte-identical to the clean version's. Use this copy while narrating the build on camera.</p>
+    <pre style="max-height:650px; overflow:auto;"><code class="py-src">&quot;&quot;&quot;Compare KLL sketch estimates of p50/p95 with exact quantiles; write CSV and SVG plot.&quot;&quot;&quot;
+
+# csv writes the results table without any third-party package
+import csv
+# math.log10 places stream lengths on a log-scale x axis
+import math
+# random builds the seeded skewed stream
+import random
+# Path keeps output paths relative to this script, wherever it is run from
+from pathlib import Path
+
+# The new approximate summary (annotated copy; identical logic to kll_sketch.py)
+from kll_sketch_annotated import KLLSketch
+# The existing stream generator and its bounded 0-1000 ms value domain
+from streams import DOMAIN_MS, generate_stream
+# The existing exact quantile, used as ground truth
+from telemetry_stats import exact_quantile
+
+# Fixed seed for every stream, so the data is identical on every run
+STREAM_SEED = 7
+# Fixed seed for the sketch&#x27;s coin flips, so the summary is identical on every run
+SKETCH_SEED = 42
+# The k used for the pass/fail checks
+CONFIGURED_K = 200
+# Extra k values that show the accuracy-vs-memory trade-off
+K_SWEEP = (50, 100, 200)
+# Growing stream lengths, to show memory stays bounded as n grows
+LENGTHS = (1_000, 10_000, 100_000)
+# The two quantiles the telemetry tool reports: p50 and p95
+QUANTILES = (0.5, 0.95)
+# Absolute error budget in ms, derived from KLL&#x27;s ~1.65% rank error (see README)
+TOLERANCE_MS = 35.0
+# The four stream shapes named in the check
+STREAM_KINDS = (&quot;uniform&quot;, &quot;skewed&quot;, &quot;constant&quot;, &quot;sorted&quot;)
+# Results land next to the script in results/
+OUT_DIR = Path(__file__).parent / &quot;results&quot;
+# Fixed color per stream (validated categorical palette, slots 1-4)
+COLORS = {&quot;uniform&quot;: &quot;#2a78d6&quot;, &quot;skewed&quot;: &quot;#eb6834&quot;, &quot;constant&quot;: &quot;#1baf7a&quot;, &quot;sorted&quot;: &quot;#eda100&quot;}
+# A distinct marker shape per stream, so the plot never relies on color alone
+SHAPES = {&quot;uniform&quot;: &quot;circle&quot;, &quot;skewed&quot;: &quot;square&quot;, &quot;constant&quot;: &quot;triangle&quot;, &quot;sorted&quot;: &quot;diamond&quot;}
+
+
+def build_stream(kind, n, seed):
+    &quot;&quot;&quot;Build one fixed-seed synthetic stream inside DOMAIN_MS.
+
+    Args:
+        kind: One of STREAM_KINDS.
+        n: Stream length.
+        seed: Seed so the same stream is rebuilt on every run.
+
+    Returns:
+        A list of n floats.
+    &quot;&quot;&quot;
+    # Uniform: the existing generator, unchanged
+    if kind == &quot;uniform&quot;:
+        return generate_stream(n, seed)
+    # Skewed: exponential latencies (mean 100 ms), long right tail
+    if kind == &quot;skewed&quot;:
+        # Own seeded generator so the skewed stream is reproducible too
+        rng = random.Random(seed)
+        # Clip to the domain ceiling so every stream stays bounded
+        return [min(rng.expovariate(1 / 100), DOMAIN_MS[1]) for _ in range(n)]
+    # Constant: every value identical, so the sketch must be exact
+    if kind == &quot;constant&quot;:
+        return [250.0] * n
+    # Sorted: same values as uniform, arriving in ascending order (adversarial order)
+    if kind == &quot;sorted&quot;:
+        return sorted(generate_stream(n, seed))
+    # Guard against typos in the stream name
+    raise ValueError(f&quot;unknown stream kind: {kind}&quot;)
+
+
+def summarize(stream, k):
+    &quot;&quot;&quot;Feed a stream through a fresh sketch.
+
+    Args:
+        stream: List of values.
+        k: Sketch accuracy parameter.
+
+    Returns:
+        The populated KLLSketch.
+    &quot;&quot;&quot;
+    # A fresh sketch with the fixed seed
+    sketch = KLLSketch(k=k, seed=SKETCH_SEED)
+    # One value at a time, exactly as a live stream would arrive
+    for value in stream:
+        sketch.update(value)
+    # Hand back the summary; the stream itself is no longer needed by the sketch
+    return sketch
+
+
+def run_case(kind, n, k):
+    &quot;&quot;&quot;Compare sketch and exact quantiles for one stream, length and k.
+
+    Args:
+        kind: Stream kind.
+        n: Stream length.
+        k: Sketch accuracy parameter.
+
+    Returns:
+        A dict holding one CSV row.
+    &quot;&quot;&quot;
+    # Build the stream (kept in full only so we can compute the exact answer)
+    stream = build_stream(kind, n, STREAM_SEED)
+    # Summarize it with the sketch
+    sketch = summarize(stream, k)
+    # Rebuild from the same seeds to prove the summary is reproducible
+    rerun = summarize(build_stream(kind, n, STREAM_SEED), k)
+    # Start the CSV row with what identifies this case
+    row = {&quot;stream&quot;: kind, &quot;n&quot;: n, &quot;k&quot;: k}
+    # Compare p50 and p95
+    for q in QUANTILES:
+        # Column name suffix: p50 or p95
+        name = f&quot;p{round(q * 100)}&quot;
+        # Ground truth from the existing exact function
+        exact = exact_quantile(stream, q)
+        # Approximation from the sketch
+        estimate = sketch.quantile(q)
+        # Rounded to 3 decimals so the CSV is readable and byte-stable
+        row[f&quot;exact_{name}&quot;] = round(exact, 3)
+        row[f&quot;est_{name}&quot;] = round(estimate, 3)
+        # The absolute error the check asks for
+        row[f&quot;abs_err_{name}&quot;] = round(abs(estimate - exact), 3)
+    # Record the tolerance on every row so the CSV stands on its own
+    row[&quot;tolerance_ms&quot;] = TOLERANCE_MS
+    # Pass only if both p50 and p95 are inside the tolerance
+    row[&quot;within_tolerance&quot;] = max(row[&quot;abs_err_p50&quot;], row[&quot;abs_err_p95&quot;]) &lt;= TOLERANCE_MS
+    # Estimates must never cross: p50 &lt;= p95
+    row[&quot;monotonic&quot;] = sketch.quantile(0.5) &lt;= sketch.quantile(0.95)
+    # Items held at the end of the stream
+    row[&quot;retained_items&quot;] = sketch.size
+    # Highest item count at any moment while streaming (the real memory peak)
+    row[&quot;peak_items&quot;] = sketch.peak_size
+    # The configured hard cap, 3k + 64
+    row[&quot;memory_bound&quot;] = sketch.memory_bound()
+    # Memory check: the peak never exceeded the cap
+    row[&quot;within_bound&quot;] = sketch.peak_size &lt;= sketch.memory_bound()
+    # Fingerprint of the whole summary state
+    row[&quot;digest&quot;] = sketch.digest()
+    # Reproducibility check: identical state from identical seeds
+    row[&quot;reproducible&quot;] = sketch.digest() == rerun.digest()
+    # One finished CSV row
+    return row
+
+
+def marker(kind, x, y):
+    &quot;&quot;&quot;Return the SVG shape used for one stream, so identity is not color alone.
+
+    Args:
+        kind: Stream kind.
+        x: Center x in pixels.
+        y: Center y in pixels.
+
+    Returns:
+        An SVG element string.
+    &quot;&quot;&quot;
+    # Uniform: circle
+    if SHAPES[kind] == &quot;circle&quot;:
+        return f&#x27;&lt;circle cx=&quot;{x:.1f}&quot; cy=&quot;{y:.1f}&quot; r=&quot;4.5&quot;/&gt;&#x27;
+    # Skewed: square
+    if SHAPES[kind] == &quot;square&quot;:
+        return f&#x27;&lt;rect x=&quot;{x - 4:.1f}&quot; y=&quot;{y - 4:.1f}&quot; width=&quot;8&quot; height=&quot;8&quot; rx=&quot;1&quot;/&gt;&#x27;
+    # Constant: triangle
+    if SHAPES[kind] == &quot;triangle&quot;:
+        return f&#x27;&lt;path d=&quot;M{x:.1f},{y - 5:.1f} L{x + 5:.1f},{y + 4:.1f} L{x - 5:.1f},{y + 4:.1f} Z&quot;/&gt;&#x27;
+    # Sorted: diamond
+    return f&#x27;&lt;path d=&quot;M{x:.1f},{y - 5.5:.1f} L{x + 5.5:.1f},{y:.1f} L{x:.1f},{y + 5.5:.1f} L{x - 5.5:.1f},{y:.1f} Z&quot;/&gt;&#x27;
+
+
+def plot_svg(rows, path):
+    &quot;&quot;&quot;Draw absolute error vs stream length, one panel each for p50 and p95.
+
+    Args:
+        rows: Result rows for the configured k.
+        path: Output .svg path.
+    &quot;&quot;&quot;
+    # Canvas size and margins in pixels
+    width, height, pad_l, pad_t, pad_b, gap = 920, 400, 56, 92, 48, 70
+    # Two side-by-side panels share the width
+    panel_w = (width - 2 * pad_l - gap) / 2
+    # Vertical space for the data
+    plot_h = height - pad_t - pad_b
+    # y axis tops out a little above the tolerance so the dashed line is visible
+    y_max = TOLERANCE_MS * 1.25
+    # x axis is log10 of stream length
+    x_lo, x_hi = math.log10(LENGTHS[0]), math.log10(LENGTHS[-1])
+
+    # Map a stream length to an x pixel inside a panel (room on the right for labels)
+    def sx(left, n):
+        return left + 20 + (math.log10(n) - x_lo) / (x_hi - x_lo) * (panel_w - 110)
+
+    # Map an error in ms to a y pixel (0 at the bottom, clipped at the top)
+    def sy(err):
+        return pad_t + plot_h - min(err, y_max) / y_max * plot_h
+
+    # Header: SVG root, light/dark theme styles, background and title
+    out = [
+        f&#x27;&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; viewBox=&quot;0 0 {width} {height}&quot; width=&quot;{width}&quot; height=&quot;{height}&quot; font-family=&quot;Segoe UI, Arial, sans-serif&quot;&gt;&#x27;,
+        &quot;&lt;style&gt;.bg{fill:#fcfcfb}.t1{fill:#0b0b0b}.t2{fill:#52514e}.grid{stroke:#e4e3df}.axis{stroke:#8a8984}.tol{stroke:#52514e}&quot;
+        &quot; @media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.t1{fill:#f0efec}.t2{fill:#c3c2b7}.grid{stroke:#33332f}.axis{stroke:#6d6c66}.tol{stroke:#c3c2b7}}&lt;/style&gt;&quot;,
+        f&#x27;&lt;rect class=&quot;bg&quot; width=&quot;{width}&quot; height=&quot;{height}&quot;/&gt;&#x27;,
+        f&#x27;&lt;text class=&quot;t1&quot; x=&quot;{pad_l}&quot; y=&quot;26&quot; font-size=&quot;16&quot; font-weight=&quot;600&quot;&gt;KLL sketch vs exact quantiles: absolute error (ms), k={CONFIGURED_K}, stream seed {STREAM_SEED}&lt;/text&gt;&#x27;,
+    ]
+    # Legend row starts at the left margin
+    legend_x = pad_l
+    # One legend entry (shape + name) per stream
+    for kind in STREAM_KINDS:
+        out.append(f&#x27;&lt;g fill=&quot;{COLORS[kind]}&quot;&gt;{marker(kind, legend_x + 5, 48)}&lt;/g&gt;&#x27;)
+        out.append(f&#x27;&lt;text class=&quot;t2&quot; x=&quot;{legend_x + 15}&quot; y=&quot;52&quot; font-size=&quot;12&quot;&gt;{kind}&lt;/text&gt;&#x27;)
+        legend_x += 90
+    # Legend entry for the dashed tolerance line
+    out.append(f&#x27;&lt;line class=&quot;tol&quot; x1=&quot;{legend_x + 4}&quot; y1=&quot;48&quot; x2=&quot;{legend_x + 28}&quot; y2=&quot;48&quot; stroke-width=&quot;1.5&quot; stroke-dasharray=&quot;5 4&quot;/&gt;&#x27;)
+    out.append(f&#x27;&lt;text class=&quot;t2&quot; x=&quot;{legend_x + 34}&quot; y=&quot;52&quot; font-size=&quot;12&quot;&gt;tolerance {TOLERANCE_MS:g} ms&lt;/text&gt;&#x27;)
+    # One panel per quantile
+    for i, q in enumerate(QUANTILES):
+        # p50 or p95
+        name = f&quot;p{round(q * 100)}&quot;
+        # Left edge of this panel
+        left = pad_l + i * (panel_w + gap)
+        # Panel title
+        out.append(f&#x27;&lt;text class=&quot;t1&quot; x=&quot;{left}&quot; y=&quot;{pad_t - 4}&quot; font-size=&quot;13&quot; font-weight=&quot;600&quot;&gt;{name}&lt;/text&gt;&#x27;)
+        # Recessive gridlines and y tick labels every 10 ms
+        for tick in range(0, int(y_max) + 1, 10):
+            y = sy(tick)
+            out.append(f&#x27;&lt;line class=&quot;grid&quot; x1=&quot;{left}&quot; y1=&quot;{y:.1f}&quot; x2=&quot;{left + panel_w}&quot; y2=&quot;{y:.1f}&quot; stroke-width=&quot;1&quot;/&gt;&#x27;)
+            out.append(f&#x27;&lt;text class=&quot;t2&quot; x=&quot;{left - 6}&quot; y=&quot;{y + 4:.1f}&quot; font-size=&quot;11&quot; text-anchor=&quot;end&quot;&gt;{tick}&lt;/text&gt;&#x27;)
+        # Baseline at zero error
+        out.append(f&#x27;&lt;line class=&quot;axis&quot; x1=&quot;{left}&quot; y1=&quot;{sy(0):.1f}&quot; x2=&quot;{left + panel_w}&quot; y2=&quot;{sy(0):.1f}&quot; stroke-width=&quot;1&quot;/&gt;&#x27;)
+        # x tick labels: the three stream lengths
+        for n in LENGTHS:
+            out.append(f&#x27;&lt;text class=&quot;t2&quot; x=&quot;{sx(left, n):.1f}&quot; y=&quot;{sy(0) + 18:.1f}&quot; font-size=&quot;11&quot; text-anchor=&quot;middle&quot;&gt;{n:,}&lt;/text&gt;&#x27;)
+        # x axis title
+        out.append(f&#x27;&lt;text class=&quot;t2&quot; x=&quot;{left + panel_w / 2:.1f}&quot; y=&quot;{height - 8}&quot; font-size=&quot;11&quot; text-anchor=&quot;middle&quot;&gt;stream length (log scale)&lt;/text&gt;&#x27;)
+        # Dashed tolerance line: every point below it passes
+        out.append(f&#x27;&lt;line class=&quot;tol&quot; x1=&quot;{left}&quot; y1=&quot;{sy(TOLERANCE_MS):.1f}&quot; x2=&quot;{left + panel_w}&quot; y2=&quot;{sy(TOLERANCE_MS):.1f}&quot; stroke-width=&quot;1.5&quot; stroke-dasharray=&quot;5 4&quot;/&gt;&#x27;)
+        # Collect end-of-line label positions so they can be de-overlapped
+        labels = []
+        # One line per stream
+        for kind in STREAM_KINDS:
+            # Pixel position of each (length, error) point for this stream
+            points = [(sx(left, r[&quot;n&quot;]), sy(r[f&quot;abs_err_{name}&quot;]), r) for r in rows if r[&quot;stream&quot;] == kind]
+            # Join points into an SVG polyline
+            line = &quot; &quot;.join(f&quot;{x:.1f},{y:.1f}&quot; for x, y, _ in points)
+            out.append(f&#x27;&lt;polyline points=&quot;{line}&quot; fill=&quot;none&quot; stroke=&quot;{COLORS[kind]}&quot; stroke-width=&quot;2&quot; stroke-linejoin=&quot;round&quot;/&gt;&#x27;)
+            # A marker per point, with a hover tooltip showing exact, estimate and error
+            for x, y, r in points:
+                tip = f&#x27;{kind}, n={r[&quot;n&quot;]:,}: exact {r[f&quot;exact_{name}&quot;]} ms, estimate {r[f&quot;est_{name}&quot;]} ms, error {r[f&quot;abs_err_{name}&quot;]} ms&#x27;
+                out.append(f&#x27;&lt;g fill=&quot;{COLORS[kind]}&quot;&gt;&lt;title&gt;{tip}&lt;/title&gt;{marker(kind, x, y)}&lt;/g&gt;&#x27;)
+            # Remember where this line ends, for its direct label
+            labels.append([points[-1][1], kind])
+        # Bottom-most label first
+        labels.sort(reverse=True)
+        # Push each label up so labels sit at least 13 px apart
+        for j in range(1, len(labels)):
+            labels[j][0] = min(labels[j][0], labels[j - 1][0] - 13)
+        # Draw the direct labels to the right of the last point
+        for y, kind in labels:
+            out.append(f&#x27;&lt;text class=&quot;t2&quot; x=&quot;{sx(left, LENGTHS[-1]) + 12:.1f}&quot; y=&quot;{y + 4:.1f}&quot; font-size=&quot;11&quot;&gt;{kind}&lt;/text&gt;&#x27;)
+    # Close the SVG
+    out.append(&quot;&lt;/svg&gt;&quot;)
+    # Write with a fixed encoding and newline so the file is byte-identical across runs
+    path.write_text(&quot;\n&quot;.join(out) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+
+
+def main():
+    &quot;&quot;&quot;Run every case, write the CSV and SVG, and print a pass/fail summary.&quot;&quot;&quot;
+    # Make sure results/ exists
+    OUT_DIR.mkdir(exist_ok=True)
+    # Every k x stream x length combination
+    rows = [run_case(kind, n, k) for k in K_SWEEP for kind in STREAM_KINDS for n in LENGTHS]
+    # Write the CSV; newline=&quot;&quot; avoids blank lines on Windows
+    with open(OUT_DIR / &quot;quantile_comparison.csv&quot;, &quot;w&quot;, newline=&quot;&quot;, encoding=&quot;utf-8&quot;) as f:
+        # Columns come from the row dict, in insertion order
+        writer = csv.DictWriter(f, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    # Pass/fail checks use only the configured k
+    configured = [r for r in rows if r[&quot;k&quot;] == CONFIGURED_K]
+    # Plot error for the configured k
+    plot_svg(configured, OUT_DIR / &quot;accuracy_plot.svg&quot;)
+    # Terminal summary header
+    print(f&quot;{&#x27;stream&#x27;:&lt;9}{&#x27;n&#x27;:&gt;8}{&#x27;err p50&#x27;:&gt;9}{&#x27;err p95&#x27;:&gt;9}  tol   mono  peak/bound  repro&quot;)
+    # One line per case: errors, tolerance, monotonic, memory, reproducibility
+    for r in configured:
+        print(f&quot;{r[&#x27;stream&#x27;]:&lt;9}{r[&#x27;n&#x27;]:&gt;8}{r[&#x27;abs_err_p50&#x27;]:&gt;9.3f}{r[&#x27;abs_err_p95&#x27;]:&gt;9.3f}  &quot;
+              f&quot;{&#x27;ok&#x27; if r[&#x27;within_tolerance&#x27;] else &#x27;FAIL&#x27;:&lt;5} {&#x27;ok&#x27; if r[&#x27;monotonic&#x27;] else &#x27;FAIL&#x27;:&lt;5}&quot;
+              f&quot;{r[&#x27;peak_items&#x27;]:&gt;4}/{r[&#x27;memory_bound&#x27;]:&lt;6} {&#x27;ok&#x27; if r[&#x27;reproducible&#x27;] else &#x27;FAIL&#x27;}&quot;)
+    # The four checks from the task
+    checks = (&quot;within_tolerance&quot;, &quot;monotonic&quot;, &quot;within_bound&quot;, &quot;reproducible&quot;)
+    # Everything must pass for the configured k
+    passed = all(r[c] for r in configured for c in checks)
+    # Overall verdict
+    print(f&quot;\nk={CONFIGURED_K}: {&#x27;ALL CHECKS PASS&#x27; if passed else &#x27;SOME CHECKS FAILED&#x27;}&quot;)
+    # Trade-off table: memory vs accuracy for each k at the longest stream
+    print(f&quot;\nAccuracy vs memory at n={LENGTHS[-1]:,} (worst error across streams):&quot;)
+    for k in K_SWEEP:
+        # Rows for this k at the largest n
+        sweep = [r for r in rows if r[&quot;k&quot;] == k and r[&quot;n&quot;] == LENGTHS[-1]]
+        # Worst p50/p95 error across the four streams
+        worst = max(max(r[&quot;abs_err_p50&quot;], r[&quot;abs_err_p95&quot;]) for r in sweep)
+        print(f&quot;  k={k:&lt;4} peak items {max(r[&#x27;peak_items&#x27;] for r in sweep):&gt;4}  worst abs error {worst:7.3f} ms&quot;)
+
+
+# Run only when executed directly, not when imported
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+    <div class="note">Narration tip: don't read every comment out loud. Explain only the lines that carry the idea: the capacity formula, the odd-item hold-back (weight stays exact), the seeded coin flip (reproducibility), peak tracking in <code class="inline">update</code> (memory check), the nearest-rank target in <code class="inline">quantile</code>, and the 35 ms tolerance constant.</div>
+  </div>
+
+  <!-- TASK -->
+  <div id="task" class="panel">
+    <h2>Task &mdash; verbatim</h2>
+    <p>Reproduced exactly as given, with no additions or omissions:</p>
+
+    <h3>Goal</h3>
+    <blockquote>As a software engineer building telemetry utilities, I will add an approximate streaming quantile summary to a fictional telemetry tool so engineers can estimate p50 and p95 without retaining the full data stream. I will implement one established sketch, compare its error with exact quantiles on bounded synthetic streams, and explain the accuracy and memory trade-off.</blockquote>
+
+    <h3>Starting point</h3>
+    <blockquote>Small local Python statistics module with exact quantiles and a generated numeric stream, no approximate summary.</blockquote>
+
+    <h3>Apps and tools</h3>
+    <table>
+      <tr><th>#</th><th>Declared app</th><th>Edition / License</th><th>App-use scope</th></tr>
+      <tr><td>1</td><td>Visual Studio Code</td><td>Visual Studio Code (standard Microsoft-branded build), current version; free</td><td>Used as a code editor for professional task recordings created as training data for an AI system. Tasks involve writing, editing, and running code (e.g., TypeScript/Node.js), using the integrated terminal, and working with version control, to produce recorded demonstrations of software engineering workflows. Running the standard Microsoft-distributed build free of charge under its product license; no paid Visual Studio subscription or enterprise license is involved. Screen recordings of this usage are delivered as training material under the project&#x27;s existing commercial arrangement.</td></tr>
+    </table>
+
+    <h3>Deliverable</h3>
+    <blockquote>Visual Studio Code deliverables: a runnable Python quantile-summary implementation, a reproducible comparison script, CSV results and an accuracy plot against exact p50/p95, plus a README describing memory behavior and limits. All code, outputs, and documentation are created in Visual Studio Code.</blockquote>
+    <h3>How I will check the result</h3>
+    <blockquote>For fixed-seed uniform, skewed, constant, and sorted streams, compare estimated p50/p95 with exact results and report absolute error against the chosen tolerance. Confirm estimates are monotonic (p50 ≤ p95), memory stays within the configured bound as stream length grows, and repeated runs with the same seed reproduce the same summary.</blockquote>
+
+    <h3>Prior work and reuse</h3>
+    <blockquote>New task. No prior task is being continued.</blockquote>
+  </div>
+</div>
+
+<footer>Streaming Quantile Sketch &mdash; Task Report &middot; generated for planning the recorded walkthrough &middot; Task - 7EF970EB9F8549BDA7D0F1966DAD3BF5</footer>
+
+<script>
+  function showTab(id){
+    document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+    var btns = document.querySelectorAll('.tab-btn');
+    for (var i = 0; i < btns.length; i++) {
+      if (btns[i].getAttribute('onclick').indexOf(id) !== -1) {
+        btns[i].classList.add('active');
+      }
+    }
+  }
+
+  function escChar(c){
+    if (c === '&') return '&amp;';
+    if (c === '<') return '&lt;';
+    if (c === '>') return '&gt;';
+    return c;
+  }
+  function escStr(s){
+    var out = '';
+    for (var k = 0; k < s.length; k++) out += escChar(s[k]);
+    return out;
+  }
+
+  // Minimal Python-aware colorizer: walks the raw source text once, treats
+  // anything inside a string literal (single, double, or triple-quoted) as
+  // plain code so a '#' inside a string is never mistaken for a comment,
+  // then wraps real comments/docstrings for display.
+  function colorizePython(src){
+    var i = 0, n = src.length, out = '';
+    while (i < n) {
+      var c = src[i];
+      if (c === '#') {
+        var j = src.indexOf('\n', i);
+        if (j === -1) j = n;
+        out += '<span class="cmt">' + escStr(src.slice(i, j)) + '</span>';
+        i = j;
+        continue;
+      }
+      if ((c === '"' || c === "'") && src[i+1] === c && src[i+2] === c) {
+        var q = c + c + c;
+        var j2 = src.indexOf(q, i + 3);
+        j2 = (j2 === -1) ? n : j2 + 3;
+        out += '<span class="doc">' + escStr(src.slice(i, j2)) + '</span>';
+        i = j2;
+        continue;
+      }
+      if (c === '"' || c === "'") {
+        var q2 = c, j3 = i + 1;
+        while (j3 < n && src[j3] !== q2) { j3 += (src[j3] === '\\') ? 2 : 1; }
+        j3 = Math.min(j3 + 1, n);
+        out += escStr(src.slice(i, j3));
+        i = j3;
+        continue;
+      }
+      out += escChar(c);
+      i += 1;
+    }
+    var lines = out.split('\n');
+    for (var li = 0; li < lines.length; li++) {
+      if (/^\s*<span class="cmt">/.test(lines[li])) {
+        lines[li] = lines[li].replace(/^(\s*)<span class="cmt">/, '$1<span class="cmt cmt-line">');
+      }
+    }
+    return lines.join('\n');
+  }
+
+  document.querySelectorAll('code.py-src').forEach(function(el){
+    el.innerHTML = colorizePython(el.textContent);
+  });
+</script>
+
+</body>
+</html>

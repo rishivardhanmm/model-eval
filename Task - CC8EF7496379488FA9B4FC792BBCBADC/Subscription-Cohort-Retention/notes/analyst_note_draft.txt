@@ -1,0 +1,29 @@
+DRAFT - read this and retype it into Notes during the recording. Do not paste it.
+Check every number against the DBeaver results before you type it.
+
+Title: Cohort retention - interpretation note
+
+Cohort definition
+- An account's cohort is the calendar month of its signup_date (2026-01, 2026-02, 2026-03; 10 accounts each).
+- "Retained at day N" means the account has no cancel event dated before signup_date + N days.
+- Checkpoints are day 30, day 60 and day 90.
+
+Assumptions
+- The data runs to 2026-06-30, so every cohort has a full 90 days of history.
+- A cancel event ends the subscription. There are no reactivations in the data.
+- Plan changes (upgrade or downgrade) do not count as churn. The account stays retained.
+- The data is synthetic. Account names and dates are fictional.
+
+Results (90-day retention)
+- 2026-01: 8 of 10 = 80%
+- 2026-02: 6 of 10 = 60%
+- 2026-03: 7 of 10 = 70%
+Hand checks: A011 cancelled on day 23, so it is out by day 30. A016 downgraded, then cancelled on day 65, so it is retained at day 60 and out by day 90. A006 cancelled on day 110, so it counts as retained at day 90.
+
+Key takeaway
+- The February cohort retains worst: 60% at day 90, against 80% for January. February loses accounts at every checkpoint (90% -> 70% -> 60%).
+- All 5 accounts that upgraded were still retained at day 90. The figure is 63.6% for the 22 accounts with no plan change.
+
+Limitation
+- With only 10 accounts per cohort, one account moves retention by 10 points. The cohort gap is a signal to watch, not a proven difference.
+- The upgrade result has survivorship bias: an account has to stay active long enough to upgrade. It does not show that upgrading causes retention.

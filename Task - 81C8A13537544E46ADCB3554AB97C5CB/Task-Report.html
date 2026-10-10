@@ -130,31 +130,31 @@
   <!-- ANALYSIS -->
   <div id="analysis" class="panel active">
     <h2>What this task actually is</h2>
-    <p><span class="pill">Context</span> A small operations team receives a weekly customer-export CSV from an upstream system they do not control. When that upstream system quietly renames a column, adds a field, or changes how IDs/dates are formatted, downstream reports built on an assumed shape break &mdash; sometimes silently (wrong joins, blank fields) rather than loudly (a crash). This task builds the first line of defense: a lightweight checker that runs before the weekly report and tells a human, in plain language, what changed and whether it is safe.</p>
+    <p><span class="pill">Context</span> Weekly customer-export CSVs sometimes change shape quietly (renamed column, new field, bad ID/date formatting) and break downstream reports. This task catches that before it happens.</p>
 
     <h3>The three deliverables</h3>
     <table>
       <tr><th>Deliverable</th><th>Form</th><th>Purpose</th></tr>
-      <tr><td>Column contract</td><td>Apple Notes entry</td><td>Plain-language statement of the expected columns, types, and rules &mdash; the &quot;spec&quot; the checker validates against.</td></tr>
-      <tr><td>Schema-drift checker</td><td>Python script in VS Code</td><td>Loads baseline vs. new CSV, diffs columns, flags renamed/added/missing fields and suspicious ID/date formatting, without modifying either source file.</td></tr>
-      <tr><td>Analyst response note</td><td>One-page Word document</td><td>Human-readable summary: what changed, likely downstream impact, and recommended action &mdash; written for someone who will not read the script.</td></tr>
+      <tr><td>Column contract</td><td>Apple Notes entry</td><td>Plain-language spec of the expected columns and rules.</td></tr>
+      <tr><td>Schema-drift checker</td><td>Python script in VS Code</td><td>Diffs baseline vs. new CSV; flags renamed/added/missing columns and bad ID/date formats.</td></tr>
+      <tr><td>Analyst response note</td><td>One-page Word doc</td><td>Plain-language summary of what changed and what to do about it.</td></tr>
     </table>
 
     <h3>Inputs already defined</h3>
     <ul>
-      <li>Two small synthetic CSVs: one <strong>baseline</strong> (known-good) and one <strong>drifted</strong> sample with deliberate changes &mdash; a renamed column, a new field, and inconsistent date/ID formatting.</li>
-      <li>No contract, script, or report exists yet &mdash; all three are built live during the recording.</li>
+      <li>Two small synthetic CSVs: a <strong>baseline</strong> and a <strong>drifted</strong> sample (renamed column, new field, bad date/ID formatting).</li>
+      <li>Nothing else exists yet &mdash; the contract, script, and note are all built live during the recording.</li>
     </ul>
 
     <h3>What &quot;done&quot; looks like</h3>
     <ul>
-      <li>The checker clearly separates <strong>expected/benign</strong> changes (e.g. a genuinely new optional column) from <strong>breaking</strong> changes (renamed required column, malformed ID/date pattern).</li>
-      <li>Neither source CSV is modified by the script &mdash; it only reads and reports.</li>
-      <li>The Word note is readable by a non-technical stakeholder in under two minutes.</li>
+      <li>Checker separates expected changes from breaking ones.</li>
+      <li>Neither source CSV is modified &mdash; read-only.</li>
+      <li>The Word note reads in under two minutes.</li>
     </ul>
 
-    <h3>Why it is structured across three apps</h3>
-    <p>This mirrors how the operations team would actually work: <strong>Notes.app</strong> for the quick, informal spec written down in a meeting; <strong>VS Code</strong> for the reusable engineering artifact; <strong>Word</strong> for the polished communication that goes to stakeholders who do not open scripts. The recording demonstrates the full path from &quot;ambiguous rule in someone&#39;s head&quot; to &quot;automated check&quot; to &quot;written decision.&quot;</p>
+    <h3>Why three apps</h3>
+    <p>Notes = quick spec, VS Code = the real tool, Word = the human-readable write-up.</p>
   </div>
 
   <!-- SCRIPT -->
