@@ -1,0 +1,11 @@
+customer_id,first_name,last_name,email,created_on,country,status,loyalty_tier
+CUST-000101,Ava,Thompson,ava.thompson@example.com,2025-11-02,US,active,gold
+CUST-102,Liam,Chen,liam.chen@example.com,11/05/2025,CA,active,silver
+CUST-000103,Noah,Garcia,noah.garcia@example.com,2025-11-10,MX,pending,bronze
+CUST-000104,Emma,Dubois,emma.dubois@example.com,2025-11-12,FR,active,gold
+CUST-000105,Olivia,Smith,olivia.smith@example.com,2025-11-15,GB,inactive,silver
+CUST-000106,Lucas,Rossi,lucas.rossi@example.com,2025-11-18,IT,active,bronze
+107,Mia,Nguyen,mia.nguyen@example.com,2025-11-20,VN,active,gold
+CUST-000108,Ethan,Johnson,ethan.johnson@example.com,2025/11/22,AU,pending,silver
+CUST-000109,Sophia,Muller,sophia.muller@example.com,2025-11-25,DE,active,bronze
+CUST-000110,James,OBrien,james.obrien@example.com,2025-11-28,IE,active,gold

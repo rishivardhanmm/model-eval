@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Schema-Drift Sentinel — Task Report</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --panel:#ffffff; --ink:#1b1f24; --sub:#5b6472;
+    --line:#e2e5ea; --accent:#3457d5; --accent-soft:#eef1fd;
+    --good:#1a7f4e; --warn:#b4530a; --bad:#b3261e;
+    --code-bg:#1e2228; --code-ink:#e7eaf0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Segoe UI',Calibri,Arial,sans-serif;
+    line-height:1.55;
+  }
+  header{
+    background:linear-gradient(135deg,#2a3f8f,#3457d5);
+    color:#fff; padding:28px 36px;
+  }
+  header h1{margin:0 0 6px; font-size:1.6rem;}
+  header p{margin:0; opacity:.9; font-size:.92rem;}
+  header .meta{margin-top:10px; font-size:.8rem; opacity:.8;}
+  .wrap{max-width:980px; margin:0 auto; padding:0 20px 60px;}
+  .tabs{
+    display:flex; gap:4px; margin-top:-1px; position:sticky; top:0;
+    background:var(--bg); padding:16px 0 0; z-index:5;
+  }
+  .tab-btn{
+    flex:1; padding:12px 14px; border:1px solid var(--line);
+    border-bottom:none; background:var(--panel); color:var(--sub);
+    font-size:.95rem; font-weight:600; cursor:pointer;
+    border-radius:10px 10px 0 0; transition:.15s;
+  }
+  .tab-btn:hover{color:var(--accent);}
+  .tab-btn.active{color:var(--accent); background:var(--panel); box-shadow:0 -2px 0 var(--accent) inset;}
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:0 0 12px 12px;
+    padding:28px 32px; display:none;
+  }
+  .panel.active{display:block;}
+  h2{font-size:1.25rem; margin-top:0; color:var(--accent);}
+  h3{font-size:1.02rem; margin-top:28px; color:var(--ink);}
+  .pill{
+    display:inline-block; font-size:.72rem; font-weight:700; letter-spacing:.03em;
+    padding:3px 9px; border-radius:999px; background:var(--accent-soft); color:var(--accent);
+    text-transform:uppercase; margin-right:6px;
+  }
+  .card{
+    border:1px solid var(--line); border-radius:10px; padding:16px 18px; margin:14px 0;
+    background:#fafbfd;
+  }
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:.92rem;}
+  th,td{border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top;}
+  th{background:var(--accent-soft); color:var(--accent);}
+  code, pre{font-family:Consolas,'Courier New',monospace;}
+  pre{
+    background:var(--code-bg); color:var(--code-ink); padding:14px 16px;
+    border-radius:8px; overflow-x:auto; font-size:.84rem; line-height:1.5;
+  }
+  code.inline{background:var(--accent-soft); color:var(--accent); padding:1px 6px; border-radius:4px;}
+  ul, ol{padding-left:22px;}
+  li{margin-bottom:6px;}
+  .timeline{list-style:none; padding:0; margin:14px 0;}
+  .timeline li{
+    position:relative; padding:10px 14px 10px 86px; border-left:3px solid var(--accent);
+    margin-bottom:6px; background:#fafbfd; border-radius:0 8px 8px 0;
+  }
+  .timeline li .t{
+    position:absolute; left:0; top:10px; width:76px; text-align:right;
+    font-weight:700; color:var(--accent); font-size:.82rem; padding-right:10px;
+  }
+  .flag-start{color:var(--good); font-weight:700;}
+  .flag-end{color:var(--bad); font-weight:700;}
+  blockquote{
+    border-left:4px solid var(--accent); margin:0; padding:4px 0 4px 16px;
+    color:var(--ink); background:#fafbfd; border-radius:0 6px 6px 0; white-space:pre-wrap;
+    font-size:.92rem;
+  }
+  .note{
+    border:1px dashed var(--line); border-radius:8px; padding:12px 14px; font-size:.86rem;
+    color:var(--sub); background:#fcfcfd; margin-top:10px;
+  }
+  footer{text-align:center; color:var(--sub); font-size:.78rem; padding:20px;}
+
+  .codewalk{width:100%; border-collapse:collapse; margin:10px 0 24px; font-size:.86rem;}
+  .codewalk th,.codewalk td{border:1px solid var(--line); padding:7px 9px; vertical-align:top;}
+  .codewalk th{background:var(--accent-soft); color:var(--accent); text-align:left;}
+  .codewalk td.ln{
+    font-family:Consolas,'Courier New',monospace; color:var(--sub); white-space:nowrap;
+    width:64px; text-align:right; background:#fafbfd;
+  }
+  .codewalk td.code{
+    font-family:Consolas,'Courier New',monospace; font-size:.82rem; white-space:pre-wrap;
+    background:var(--code-bg); color:var(--code-ink); width:38%;
+  }
+  .codewalk td.purpose{width:auto;}
+  .block-title{
+    margin-top:30px; padding:6px 10px; background:var(--accent-soft); color:var(--accent);
+    border-radius:6px; font-weight:700; font-size:.92rem;
+  }
+
+  /* Comment highlighting inside the code blocks, diff-style */
+  .cmt{ color:#f2a65a; }
+  .cmt-line{
+    display:block; background:rgba(180,83,10,.22);
+    border-left:3px solid var(--warn); margin:0 0 0 -16px; padding-left:13px;
+  }
+  .doc{ color:#9fb3c8; font-style:italic; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Schema-Drift Sentinel — Task Report</h1>
+  <p>Planning document for the recorded walkthrough: comparing customer-export CSVs, documenting the column contract, building the Python drift checker, and drafting the analyst response note.</p>
+  <div class="meta">Task - 81C8A13537544E46ADCB3554AB97C5CB &nbsp;&middot;&nbsp; Prepared: 2026-10-10 &nbsp;&middot;&nbsp; Status: New task &mdash; no prior work to continue</div>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('analysis')">Analysis</button>
+    <button class="tab-btn" onclick="showTab('script')">Script</button>
+    <button class="tab-btn" onclick="showTab('code')">Code Walkthrough</button>
+    <button class="tab-btn" onclick="showTab('task')">Task</button>
+  </div>
+
+  <!-- ANALYSIS -->
+  <div id="analysis" class="panel active">
+    <h2>What this task actually is</h2>
+    <p><span class="pill">Context</span> A small operations team receives a weekly customer-export CSV from an upstream system they do not control. When that upstream system quietly renames a column, adds a field, or changes how IDs/dates are formatted, downstream reports built on an assumed shape break &mdash; sometimes silently (wrong joins, blank fields) rather than loudly (a crash). This task builds the first line of defense: a lightweight checker that runs before the weekly report and tells a human, in plain language, what changed and whether it is safe.</p>
+
+    <h3>The three deliverables</h3>
+    <table>
+      <tr><th>Deliverable</th><th>Form</th><th>Purpose</th></tr>
+      <tr><td>Column contract</td><td>Apple Notes entry</td><td>Plain-language statement of the expected columns, types, and rules &mdash; the &quot;spec&quot; the checker validates against.</td></tr>
+      <tr><td>Schema-drift checker</td><td>Python script in VS Code</td><td>Loads baseline vs. new CSV, diffs columns, flags renamed/added/missing fields and suspicious ID/date formatting, without modifying either source file.</td></tr>
+      <tr><td>Analyst response note</td><td>One-page Word document</td><td>Human-readable summary: what changed, likely downstream impact, and recommended action &mdash; written for someone who will not read the script.</td></tr>
+    </table>
+
+    <h3>Inputs already defined</h3>
+    <ul>
+      <li>Two small synthetic CSVs: one <strong>baseline</strong> (known-good) and one <strong>drifted</strong> sample with deliberate changes &mdash; a renamed column, a new field, and inconsistent date/ID formatting.</li>
+      <li>No contract, script, or report exists yet &mdash; all three are built live during the recording.</li>
+    </ul>
+
+    <h3>What &quot;done&quot; looks like</h3>
+    <ul>
+      <li>The checker clearly separates <strong>expected/benign</strong> changes (e.g. a genuinely new optional column) from <strong>breaking</strong> changes (renamed required column, malformed ID/date pattern).</li>
+      <li>Neither source CSV is modified by the script &mdash; it only reads and reports.</li>
+      <li>The Word note is readable by a non-technical stakeholder in under two minutes.</li>
+    </ul>
+
+    <h3>Why it is structured across three apps</h3>
+    <p>This mirrors how the operations team would actually work: <strong>Notes.app</strong> for the quick, informal spec written down in a meeting; <strong>VS Code</strong> for the reusable engineering artifact; <strong>Word</strong> for the polished communication that goes to stakeholders who do not open scripts. The recording demonstrates the full path from &quot;ambiguous rule in someone&#39;s head&quot; to &quot;automated check&quot; to &quot;written decision.&quot;</p>
+  </div>
+
+  <!-- SCRIPT -->
+  <div id="script" class="panel">
+    <h2>Recording script &mdash; 15&ndash;20 minute flow</h2>
+    <p>Recording starts in about 15 minutes. This tab is the run-sheet: what to have open <em>before</em> hitting record, the exact order of actions during the take, and how to close cleanly so the recording is usable without re-takes.</p>
+
+    <h3>Before pressing record (prep &mdash; do this now, not on camera)</h3>
+    <ul>
+      <li>Have both CSVs saved locally and visible in Finder/VS Code&#39;s file tree: <code class="inline">baseline_customers.csv</code> and <code class="inline">drifted_customers.csv</code>.</li>
+      <li>Open and sign in to all three apps in advance: <strong>Notes.app</strong>, <strong>VS Code</strong>, <strong>Word</strong>. Close unrelated tabs/windows and anything with notifications (Slack, Mail) &mdash; they will appear on screen.</li>
+      <li>Create a blank Note titled &quot;Customer Export &mdash; Column Contract&quot; and a blank Word doc titled &quot;Schema Drift &mdash; Analyst Note&quot;, both empty, ready to type into on camera.</li>
+      <li>In VS Code, open an empty folder for this task and create an empty file <code class="inline">drift_check.py</code>. Do not pre-write the script &mdash; building it live is the point of the recording.</li>
+      <li>Decide the screen recorder now (e.g. the OS-native recorder) and confirm it captures system audio/mic if narrating. Do a 5-second test clip if it has not been used today.</li>
+    </ul>
+
+    <h3>Start-of-recording checklist</h3>
+    <ol>
+      <li>Close anything containing real customer data or unrelated personal info &mdash; only the two synthetic CSVs should be on screen.</li>
+      <li>Arrange windows so the screen recorder&#39;s capture area shows a full app at a time (avoid tiny side-by-side panes the viewer cannot read).</li>
+      <li><span class="flag-start">Press record.</span> Wait one second of silence, then state out loud: the task name, and the one-sentence goal (&quot;catch quiet schema drift between two weekly customer exports before it breaks downstream reports&quot;).</li>
+    </ol>
+
+    <h3>On-camera flow (target ~16&ndash;18 min of content inside a 15&ndash;20 min take)</h3>
+    <ul class="timeline">
+      <li><span class="t">0:00&ndash;2:00</span><strong>Compare the two CSVs by eye.</strong> Open both in VS Code side-by-side or a quick terminal <code class="inline">head</code>. Narrate what is different: one column renamed, one column added, ID/date formatting inconsistent. This sets up why automation is needed.</li>
+      <li><span class="t">2:00&ndash;5:00</span><strong>Notes.app &mdash; write the column contract.</strong> New note, plain language: list expected column names, required vs optional, ID format rule (e.g. &quot;CUST-###### always&quot;), date format rule (e.g. &quot;YYYY-MM-DD&quot;), and what counts as a breaking vs. non-breaking change. Keep it short &mdash; this is the spec, not documentation.</li>
+      <li><span class="t">5:00&ndash;12:00</span><strong>VS Code &mdash; build <code class="inline">drift_check.py</code> live.</strong> Narrate each piece while typing: load both CSVs with <code class="inline">csv</code>/<code class="inline">pandas</code>, diff the column sets (added/missing/renamed-looking), validate ID and date patterns per the contract, classify each finding as expected vs. breaking, print a readable report. Run it once midway to catch typos, keep going.</li>
+      <li><span class="t">12:00&ndash;14:00</span><strong>Run it against both files and show the report.</strong> Confirm on camera that neither CSV was altered (e.g. re-open them, or note the script only opens them in read mode). Point out which findings are breaking vs. benign.</li>
+      <li><span class="t">14:00&ndash;17:00</span><strong>Word &mdash; write the one-page analyst note.</strong> Summarize: what changed, which changes are breaking and why, recommended action (e.g. &quot;hold the report until the ID column is confirmed&quot;), and reference the contract from Notes. Keep it to one page, plain language, no code.</li>
+      <li><span class="t">17:00&ndash;18:00</span><strong>Wrap-up.</strong> State what was delivered (checker + report + note), restate that source files are untouched, and that the checker is reusable next week against new exports.</li>
+    </ul>
+
+    <h3>End-of-recording checklist</h3>
+    <ol>
+      <li>Say a clear closing line so the edit has a natural out-point (e.g. &quot;That is the full drift-check workflow end to end.&quot;).</li>
+      <li><span class="flag-end">Stop recording</span> &mdash; wait one second after the closing line before stopping, so the last sentence is not clipped.</li>
+      <li>Save the recording immediately with a clear filename before doing anything else (renders/autosaves can silently fail if navigating away too fast).</li>
+      <li>Save all three artifacts for real: <code class="inline">drift_check.py</code> in VS Code, the Note, and the Word doc &mdash; confirm each persisted (reopen each one quickly).</li>
+      <li>Scrub the first 10 seconds and last 10 seconds of the recording to confirm clean in/out points before calling it done.</li>
+    </ol>
+
+    <div class="note">Timing note: the on-camera content blocks (compare &rarr; contract &rarr; script &rarr; run &rarr; note &rarr; wrap-up) add up to roughly 18 minutes, which fits the 15&ndash;20 minute target with a little room to breathe. If the take runs long while narrating, trim pauses in post rather than rushing the live typing &mdash; rushed typing on camera is the most common cause of needing a re-take.</div>
+  </div>
+
+  <!-- CODE WALKTHROUGH -->
+  <div id="code" class="panel">
+    <h2>drift_check.py &mdash; line-by-line walkthrough</h2>
+    <p>What each part of the checker does and why it exists. Line numbers match <code class="inline">script/drift_check.py</code> as written. Use this tab as the talking-track while narrating the build in VS Code.</p>
+
+    <div class="block-title">Clean version &mdash; script/drift_check.py (the reusable deliverable)</div>
+    <p>This is the actual file that ships and runs &mdash; no inline teaching comments, kept lean on purpose so it stays easy to scan and maintain.</p>
+    <pre style="max-height:420px; overflow:auto;"><code id="code-clean">#!/usr/bin/env python3
+&quot;&quot;&quot;Schema-drift checker for weekly customer-export CSVs.
+
+Compares a baseline (known-good) export against a new export and reports:
+  - missing / added / likely-renamed columns
+  - row-level ID and date formatting problems
+  - a severity for each finding (BREAKING / WARNING / INFO)
+
+Read-only: never writes to either input CSV. Standard library only, so any
+machine on the team can run it with no extra installs.
+
+Usage:
+    python drift_check.py BASELINE.csv NEW.csv [--out report.txt]
+&quot;&quot;&quot;
+
+import argparse
+import csv
+import re
+import sys
+from pathlib import Path
+
+# ---------------------------------------------------------------------------
+# Column contract — mirrors the plain-language version kept in Apple Notes
+# (&quot;Customer Export - Column Contract&quot;). Keep these two in sync by hand.
+# ---------------------------------------------------------------------------
+REQUIRED_COLUMNS = {
+    &quot;customer_id&quot;: r&quot;^CUST-\d{6}$&quot;,
+    &quot;first_name&quot;: None,
+    &quot;last_name&quot;: None,
+    &quot;email&quot;: r&quot;^[^@\s]+@[^@\s]+\.[^@\s]+$&quot;,
+    &quot;signup_date&quot;: r&quot;^\d{4}-\d{2}-\d{2}$&quot;,
+    &quot;country&quot;: r&quot;^[A-Z]{2}$&quot;,
+    &quot;status&quot;: None,
+}
+ALLOWED_STATUS = {&quot;active&quot;, &quot;inactive&quot;, &quot;pending&quot;}
+
+# Columns the team has already approved as safe, non-breaking additions.
+ALLOWED_NEW_COLUMNS = {&quot;loyalty_tier&quot;}
+
+BREAKING = &quot;BREAKING&quot;
+WARNING = &quot;WARNING&quot;
+INFO = &quot;INFO&quot;
+
+_SHAPE_PATTERNS = [
+    (&quot;date-iso&quot;, re.compile(r&quot;^\d{4}-\d{2}-\d{2}$&quot;)),
+    (&quot;date-other&quot;, re.compile(r&quot;^\d{1,4}[/-]\d{1,2}[/-]\d{1,4}$&quot;)),
+    (&quot;id-like&quot;, re.compile(r&quot;^[A-Za-z]*-?\d{3,}$&quot;)),
+    (&quot;number&quot;, re.compile(r&quot;^-?\d+(\.\d+)?$&quot;)),
+]
+
+
+def shape_of(value):
+    &quot;&quot;&quot;Classify a sample value so we can guess whether a missing column
+    and an added column are really the same field under a new name.
+
+    Args:
+        value (str): A single raw CSV cell value to classify.
+
+    Returns:
+        str: One of &quot;date-iso&quot;, &quot;date-other&quot;, &quot;id-like&quot;, &quot;number&quot;, or &quot;text&quot;.
+    &quot;&quot;&quot;
+    for label, pattern in _SHAPE_PATTERNS:
+        if pattern.match(value):
+            return label
+    return &quot;text&quot;
+
+
+def read_csv(path):
+    &quot;&quot;&quot;Load one CSV file into a header list and a list of row dicts.
+
+    Opens the file in read-only mode; this is the sole guarantee that
+    the script never modifies a source export.
+
+    Args:
+        path (str): Filesystem path to the CSV file to load.
+
+    Returns:
+        tuple[list[str], list[dict]]: (column names in file order, rows as
+        {column_name: value} dicts).
+    &quot;&quot;&quot;
+    with open(path, newline=&quot;&quot;, encoding=&quot;utf-8-sig&quot;) as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+        return reader.fieldnames or [], rows
+
+
+def guess_renames(missing, added, baseline_rows, new_rows, sample_size=5):
+    &quot;&quot;&quot;Heuristic rename detection: pair a missing column with an added
+    column if their sample values share the same shape.
+
+    Args:
+        missing (set[str]): Column names present in baseline but absent from new.
+        added (set[str]): Column names present in new but absent from baseline.
+        baseline_rows (list[dict]): Row dicts from the baseline file.
+        new_rows (list[dict]): Row dicts from the new file.
+        sample_size (int): How many leading rows to sample per column. Defaults to 5.
+
+    Returns:
+        dict[str, str]: Mapping of old (missing) column name to its guessed
+        new (added) column name.
+    &quot;&quot;&quot;
+
+    def sample_shape(rows, col):
+        vals = [r.get(col, &quot;&quot;).strip() for r in rows[:sample_size] if r.get(col, &quot;&quot;).strip()]
+        if not vals:
+            return None
+        return shape_of(vals[0])
+
+    renames = {}
+    unmatched_added = set(added)
+    for miss_col in sorted(missing):
+        miss_shape = sample_shape(baseline_rows, miss_col)
+        if miss_shape is None:
+            continue
+        for add_col in sorted(unmatched_added):
+            if sample_shape(new_rows, add_col) == miss_shape:
+                renames[miss_col] = add_col
+                unmatched_added.discard(add_col)
+                break
+    return renames
+
+
+def diff_columns(baseline_fields, new_fields, baseline_rows, new_rows):
+    &quot;&quot;&quot;Compare two header rows and build every column-level finding.
+
+    Detects likely renames first (via guess_renames), then reports any
+    remaining missing columns, then any remaining added columns -
+    distinguishing pre-approved additions from unannounced ones.
+
+    Args:
+        baseline_fields (list[str]): Column names from the baseline file.
+        new_fields (list[str]): Column names from the new file.
+        baseline_rows (list[dict]): Row dicts from the baseline file.
+        new_rows (list[dict]): Row dicts from the new file.
+
+    Returns:
+        list[dict]: Finding dicts, each with &quot;severity&quot;, &quot;area&quot;, &quot;message&quot;,
+        and &quot;impact&quot; keys. Unsorted - run() sorts by severity.
+    &quot;&quot;&quot;
+    baseline_set, new_set = set(baseline_fields), set(new_fields)
+    missing = baseline_set - new_set
+    added = new_set - baseline_set
+
+    renames = guess_renames(missing, added, baseline_rows, new_rows)
+
+    findings = []
+    for old_name, new_name in renames.items():
+        severity = BREAKING if old_name in REQUIRED_COLUMNS else WARNING
+        findings.append({
+            &quot;severity&quot;: severity,
+            &quot;area&quot;: &quot;column&quot;,
+            &quot;message&quot;: (
+                f&quot;Column &#x27;{old_name}&#x27; appears to have been renamed to &#x27;{new_name}&#x27; &quot;
+                f&quot;(same value shape, column missing/added together).&quot;
+            ),
+            &quot;impact&quot;: (
+                f&quot;Any code referencing &#x27;{old_name}&#x27; by name (joins, sorts, filters) &quot;
+                f&quot;will silently stop finding it.&quot;
+                if severity == BREAKING
+                else f&quot;Low impact: &#x27;{old_name}&#x27; was not a required field.&quot;
+            ),
+        })
+
+    renamed_old = set(renames.keys())
+    renamed_new = set(renames.values())
+
+    for col in sorted(missing - renamed_old):
+        severity = BREAKING if col in REQUIRED_COLUMNS else WARNING
+        findings.append({
+            &quot;severity&quot;: severity,
+            &quot;area&quot;: &quot;column&quot;,
+            &quot;message&quot;: f&quot;Required column &#x27;{col}&#x27; is missing from the new export.&quot; if severity == BREAKING
+                       else f&quot;Optional column &#x27;{col}&#x27; is missing from the new export.&quot;,
+            &quot;impact&quot;: &quot;Downstream code expecting this column will error or silently produce blanks.&quot;
+                       if severity == BREAKING else &quot;Minimal impact; column was not required.&quot;,
+        })
+
+    for col in sorted(added - renamed_new):
+        if col in ALLOWED_NEW_COLUMNS:
+            findings.append({
+                &quot;severity&quot;: INFO,
+                &quot;area&quot;: &quot;column&quot;,
+                &quot;message&quot;: f&quot;New column &#x27;{col}&#x27; detected - this is on the pre-approved safe list.&quot;,
+                &quot;impact&quot;: &quot;No action needed. Existing reports ignore unknown columns.&quot;,
+            })
+        else:
+            findings.append({
+                &quot;severity&quot;: WARNING,
+                &quot;area&quot;: &quot;column&quot;,
+                &quot;message&quot;: f&quot;New column &#x27;{col}&#x27; detected - not on the pre-approved list.&quot;,
+                &quot;impact&quot;: &quot;Probably safe (extra data), but confirm with the source team before relying on it.&quot;,
+            })
+
+    return findings
+
+
+def check_row_values(fields, rows, filelabel, findings):
+    &quot;&quot;&quot;Validate customer_id, date, and status on every row of one file.
+
+    Appends a finding dict for each malformed ID, malformed date, unexpected
+    status value, and duplicate customer_id onto the shared findings list.
+
+    Args:
+        fields (list[str]): Column names present in this file.
+        rows (list[dict]): Row dicts to validate.
+        filelabel (str): Short label (usually the filename) used in messages.
+        findings (list[dict]): Shared findings list; mutated in place.
+
+    Returns:
+        None: Findings are appended to the `findings` argument in place.
+    &quot;&quot;&quot;
+    id_pattern = re.compile(REQUIRED_COLUMNS[&quot;customer_id&quot;])
+    date_col = &quot;signup_date&quot; if &quot;signup_date&quot; in fields else (
+        &quot;created_on&quot; if &quot;created_on&quot; in fields else None
+    )
+    iso_date = re.compile(r&quot;^\d{4}-\d{2}-\d{2}$&quot;)
+    seen_ids = {}
+
+    for line_no, row in enumerate(rows, start=2):  # header is line 1
+        cid = (row.get(&quot;customer_id&quot;) or &quot;&quot;).strip()
+        if cid and not id_pattern.match(cid):
+            findings.append({
+                &quot;severity&quot;: BREAKING,
+                &quot;area&quot;: &quot;row-data&quot;,
+                &quot;message&quot;: f&quot;[{filelabel} line {line_no}] customer_id &#x27;{cid}&#x27; does not match CUST-###### format.&quot;,
+                &quot;impact&quot;: &quot;Row will fail to join against systems keyed on the standard customer_id format.&quot;,
+            })
+        if cid:
+            seen_ids.setdefault(cid, []).append(line_no)
+
+        if date_col:
+            val = (row.get(date_col) or &quot;&quot;).strip()
+            if val and not iso_date.match(val):
+                findings.append({
+                    &quot;severity&quot;: BREAKING,
+                    &quot;area&quot;: &quot;row-data&quot;,
+                    &quot;message&quot;: f&quot;[{filelabel} line {line_no}] {date_col} &#x27;{val}&#x27; is not in YYYY-MM-DD format.&quot;,
+                    &quot;impact&quot;: &quot;Date-based sorting/filtering in the weekly report will misorder or drop this row.&quot;,
+                })
+
+        status = (row.get(&quot;status&quot;) or &quot;&quot;).strip()
+        if status and status not in ALLOWED_STATUS:
+            findings.append({
+                &quot;severity&quot;: WARNING,
+                &quot;area&quot;: &quot;row-data&quot;,
+                &quot;message&quot;: f&quot;[{filelabel} line {line_no}] status &#x27;{status}&#x27; is outside the approved set {sorted(ALLOWED_STATUS)}.&quot;,
+                &quot;impact&quot;: &quot;Row may be miscategorized in status-based report sections.&quot;,
+            })
+
+    for cid, lines in seen_ids.items():
+        if len(lines) &gt; 1:
+            findings.append({
+                &quot;severity&quot;: BREAKING,
+                &quot;area&quot;: &quot;row-data&quot;,
+                &quot;message&quot;: f&quot;[{filelabel}] customer_id &#x27;{cid}&#x27; repeats on lines {lines}.&quot;,
+                &quot;impact&quot;: &quot;Duplicate IDs will double-count this customer in aggregated reports.&quot;,
+            })
+
+
+def run(baseline_path, new_path):
+    &quot;&quot;&quot;Load both exports and run the full column + row-level comparison.
+
+    Args:
+        baseline_path (str): Path to the known-good baseline CSV.
+        new_path (str): Path to the new (possibly drifted) CSV.
+
+    Returns:
+        tuple[list[str], list[str], list[dict]]: (baseline column names,
+        new-file column names, findings sorted most-severe first).
+    &quot;&quot;&quot;
+    baseline_fields, baseline_rows = read_csv(baseline_path)
+    new_fields, new_rows = read_csv(new_path)
+
+    findings = diff_columns(baseline_fields, new_fields, baseline_rows, new_rows)
+    check_row_values(new_fields, new_rows, Path(new_path).name, findings)
+
+    order = {BREAKING: 0, WARNING: 1, INFO: 2}
+    findings.sort(key=lambda f: order[f[&quot;severity&quot;]])
+    return baseline_fields, new_fields, findings
+
+
+def render_report(baseline_path, new_path, baseline_fields, new_fields, findings):
+    &quot;&quot;&quot;Format a findings list into the fixed-width text report.
+
+    Args:
+        baseline_path (str): Path to the baseline CSV (shown in the header).
+        new_path (str): Path to the new CSV (shown in the header).
+        baseline_fields (list[str]): Baseline column names, for display.
+        new_fields (list[str]): New-file column names, for display.
+        findings (list[dict]): Findings to render, most-severe first.
+
+    Returns:
+        str: The complete report text, ready to print or write to a file.
+    &quot;&quot;&quot;
+    lines = []
+    lines.append(&quot;=&quot; * 72)
+    lines.append(&quot;SCHEMA-DRIFT REPORT&quot;)
+    lines.append(&quot;=&quot; * 72)
+    lines.append(f&quot;Baseline file : {baseline_path}&quot;)
+    lines.append(f&quot;New file      : {new_path}&quot;)
+    lines.append(f&quot;Baseline cols : {&#x27;, &#x27;.join(baseline_fields)}&quot;)
+    lines.append(f&quot;New cols      : {&#x27;, &#x27;.join(new_fields)}&quot;)
+    lines.append(&quot;&quot;)
+
+    counts = {BREAKING: 0, WARNING: 0, INFO: 0}
+    for f in findings:
+        counts[f[&quot;severity&quot;]] += 1
+    lines.append(
+        f&quot;Summary: {counts[BREAKING]} breaking, {counts[WARNING]} need review, {counts[INFO]} informational&quot;
+    )
+    lines.append(&quot;-&quot; * 72)
+
+    if not findings:
+        lines.append(&quot;No drift detected. New export matches the column contract.&quot;)
+    else:
+        for f in findings:
+            lines.append(f&quot;[{f[&#x27;severity&#x27;]:9s}] {f[&#x27;message&#x27;]}&quot;)
+            lines.append(f&quot;            Likely impact: {f[&#x27;impact&#x27;]}&quot;)
+            lines.append(&quot;&quot;)
+
+    lines.append(&quot;=&quot; * 72)
+    lines.append(&quot;Source files were opened read-only; neither CSV was modified by this run.&quot;)
+    lines.append(&quot;=&quot; * 72)
+    return &quot;\n&quot;.join(lines)
+
+
+def main():
+    &quot;&quot;&quot;CLI entry point: parse arguments, run the check, print/save the
+    report, and exit non-zero if any BREAKING finding was detected.
+
+    Returns:
+        None: Exits the process via sys.exit() instead of returning.
+    &quot;&quot;&quot;
+    parser = argparse.ArgumentParser(description=&quot;Compare a new customer export against a known-good baseline.&quot;)
+    parser.add_argument(&quot;baseline&quot;, nargs=&quot;?&quot;, default=str(Path(__file__).resolve().parent.parent / &quot;data&quot; / &quot;baseline_customers.csv&quot;))
+    parser.add_argument(&quot;new&quot;, nargs=&quot;?&quot;, default=str(Path(__file__).resolve().parent.parent / &quot;data&quot; / &quot;drifted_customers.csv&quot;))
+    parser.add_argument(&quot;--out&quot;, help=&quot;Also write the report to this file.&quot;)
+    args = parser.parse_args()
+
+    baseline_fields, new_fields, findings = run(args.baseline, args.new)
+    report = render_report(args.baseline, args.new, baseline_fields, new_fields, findings)
+
+    print(report)
+    if args.out:
+        Path(args.out).write_text(report, encoding=&quot;utf-8&quot;)
+        print(f&quot;\nReport also written to {args.out}&quot;)
+
+    has_breaking = any(f[&quot;severity&quot;] == BREAKING for f in findings)
+    sys.exit(1 if has_breaking else 0)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+    <div class="block-title">Annotated version &mdash; script/drift_check_annotated.py (same logic, commented line by line)</div>
+    <p>Identical behavior (diffed byte-for-byte against the clean version's output above) with a real Python comment on every line that needs one. Use this copy while narrating the build in VS Code &mdash; read the comments straight off the screen instead of explaining from memory.</p>
+    <pre style="max-height:650px; overflow:auto;"><code id="code-annotated">#!/usr/bin/env python3
+# Shebang so this can also be run directly on macOS/Linux as ./drift_check.py
+&quot;&quot;&quot;Schema-drift checker for weekly customer-export CSVs.
+
+Compares a baseline (known-good) export against a new export and reports:
+  - missing / added / likely-renamed columns
+  - row-level ID and date formatting problems
+  - a severity for each finding (BREAKING / WARNING / INFO)
+
+Read-only: never writes to either input CSV. Standard library only, so any
+machine on the team can run it with no extra installs.
+
+Usage:
+    python drift_check.py BASELINE.csv NEW.csv [--out report.txt]
+&quot;&quot;&quot;
+
+import argparse          # parses the baseline/new file paths and the --out flag from the command line
+import csv                # built-in CSV parsing (DictReader) - this is why no pandas install is needed
+import re                 # regex matching for every ID/date/email/shape check in this file
+import sys                 # used once, for sys.exit() to set the process exit code from the findings
+from pathlib import Path   # cross-platform file paths, used for default sample paths and writing --out
+
+# ---------------------------------------------------------------------------
+# Column contract - mirrors the plain-language version kept in Apple Notes
+# (&quot;Customer Export - Column Contract&quot;). Keep these two in sync by hand.
+# ---------------------------------------------------------------------------
+REQUIRED_COLUMNS = {
+    &quot;customer_id&quot;: r&quot;^CUST-\d{6}$&quot;,   # must be literally &quot;CUST-&quot; + exactly 6 digits
+    &quot;first_name&quot;: None,                # must exist, no format to check
+    &quot;last_name&quot;: None,                 # must exist, no format to check
+    &quot;email&quot;: r&quot;^[^@\s]+@[^@\s]+\.[^@\s]+$&quot;,  # minimal local@domain.tld shape check
+    &quot;signup_date&quot;: r&quot;^\d{4}-\d{2}-\d{2}$&quot;,   # strict YYYY-MM-DD only, no other layout
+    &quot;country&quot;: r&quot;^[A-Z]{2}$&quot;,          # exactly two uppercase letters (ISO code)
+    &quot;status&quot;: None,                    # format is checked separately, against ALLOWED_STATUS below
+}  # end of the column contract dict
+ALLOWED_STATUS = {&quot;active&quot;, &quot;inactive&quot;, &quot;pending&quot;}  # the only valid values for the status column
+
+# Columns the team has already approved as safe, non-breaking additions.
+ALLOWED_NEW_COLUMNS = {&quot;loyalty_tier&quot;}  # anything in here is reported as INFO, not WARNING
+
+BREAKING = &quot;BREAKING&quot;   # severity: fails the run (non-zero exit code)
+WARNING = &quot;WARNING&quot;     # severity: needs a human to look at it, does not fail the run
+INFO = &quot;INFO&quot;           # severity: fully expected, no action needed
+
+# Shape patterns used ONLY to guess column renames - not for validation.
+_SHAPE_PATTERNS = [
+    (&quot;date-iso&quot;, re.compile(r&quot;^\d{4}-\d{2}-\d{2}$&quot;)),              # e.g. 2025-11-02
+    (&quot;date-other&quot;, re.compile(r&quot;^\d{1,4}[/-]\d{1,2}[/-]\d{1,4}$&quot;)),  # e.g. 11/05/2025 or 2025/11/22
+    (&quot;id-like&quot;, re.compile(r&quot;^[A-Za-z]*-?\d{3,}$&quot;)),               # optional letters/hyphen + 3+ digits
+    (&quot;number&quot;, re.compile(r&quot;^-?\d+(\.\d+)?$&quot;)),                     # plain integer or decimal
+]  # anything matching none of these falls through to &quot;text&quot; in shape_of()
+
+
+def shape_of(value):
+    &quot;&quot;&quot;Classify a sample value so we can guess whether a missing column
+    and an added column are really the same field under a new name.
+
+    Args:
+        value (str): A single raw CSV cell value to classify.
+
+    Returns:
+        str: One of &quot;date-iso&quot;, &quot;date-other&quot;, &quot;id-like&quot;, &quot;number&quot;, or &quot;text&quot;.
+    &quot;&quot;&quot;
+    for label, pattern in _SHAPE_PATTERNS:   # try each known shape in order
+        if pattern.match(value):              # first pattern that matches wins
+            return label
+    return &quot;text&quot;                             # nothing matched - treat as plain text
+
+
+def read_csv(path):
+    &quot;&quot;&quot;Load one CSV file into a header list and a list of row dicts.
+
+    Args:
+        path (str): Filesystem path to the CSV file to load.
+
+    Returns:
+        tuple[list[str], list[dict]]: (column names in file order, rows as
+        {column_name: value} dicts).
+    &quot;&quot;&quot;
+    # &quot;r&quot; (default) mode = READ-ONLY. This is what guarantees the script never
+    # modifies either source CSV. utf-8-sig quietly strips an Excel BOM if present.
+    with open(path, newline=&quot;&quot;, encoding=&quot;utf-8-sig&quot;) as f:
+        reader = csv.DictReader(f)             # maps each row to {column_name: value}
+        rows = list(reader)                    # materialize rows before the file closes
+        return reader.fieldnames or [], rows    # fieldnames is None for an empty file - fall back to []
+
+
+def guess_renames(missing, added, baseline_rows, new_rows, sample_size=5):
+    &quot;&quot;&quot;Heuristic rename detection: pair a missing column with an added
+    column if their sample values share the same shape.
+
+    Args:
+        missing (set[str]): Column names present in baseline but absent from new.
+        added (set[str]): Column names present in new but absent from baseline.
+        baseline_rows (list[dict]): Row dicts from the baseline file.
+        new_rows (list[dict]): Row dicts from the new file.
+        sample_size (int): How many leading rows to sample per column. Defaults to 5.
+
+    Returns:
+        dict[str, str]: Mapping of old (missing) column name to its guessed
+        new (added) column name.
+    &quot;&quot;&quot;
+
+    def sample_shape(rows, col):
+        # first N non-blank sample values for this column
+        vals = [r.get(col, &quot;&quot;).strip() for r in rows[:sample_size] if r.get(col, &quot;&quot;).strip()]
+        if not vals:
+            return None                         # no usable sample data for this column
+        return shape_of(vals[0])                # classify just the first sample value
+
+    renames = {}                                 # old_name -&gt; new_name pairs we decide are a rename
+    unmatched_added = set(added)                 # added columns not yet claimed as a rename target
+    for miss_col in sorted(missing):              # sorted only for deterministic output
+        miss_shape = sample_shape(baseline_rows, miss_col)   # what this column looked like before
+        if miss_shape is None:
+            continue                              # can&#x27;t guess a rename with no sample data
+        for add_col in sorted(unmatched_added):
+            if sample_shape(new_rows, add_col) == miss_shape:  # same shape -&gt; likely the same field, renamed
+                renames[miss_col] = add_col
+                unmatched_added.discard(add_col)   # don&#x27;t let two missing columns claim the same new column
+                break                               # stop looking once this miss_col is matched
+    return renames
+
+
+def diff_columns(baseline_fields, new_fields, baseline_rows, new_rows):
+    &quot;&quot;&quot;Compare two header rows and build every column-level finding.
+
+    Args:
+        baseline_fields (list[str]): Column names from the baseline file.
+        new_fields (list[str]): Column names from the new file.
+        baseline_rows (list[dict]): Row dicts from the baseline file.
+        new_rows (list[dict]): Row dicts from the new file.
+
+    Returns:
+        list[dict]: Finding dicts, each with &quot;severity&quot;, &quot;area&quot;, &quot;message&quot;,
+        and &quot;impact&quot; keys. Unsorted - run() sorts by severity.
+    &quot;&quot;&quot;
+    baseline_set, new_set = set(baseline_fields), set(new_fields)  # header lists -&gt; sets, for set algebra
+    missing = baseline_set - new_set    # columns that disappeared
+    added = new_set - baseline_set      # columns that showed up
+
+    # Resolve likely renames FIRST, so a renamed column isn&#x27;t double-reported
+    # below as both &quot;missing&quot; and &quot;added&quot;.
+    renames = guess_renames(missing, added, baseline_rows, new_rows)
+
+    findings = []   # every detected issue accumulates here as a dict
+    for old_name, new_name in renames.items():
+        # Only BREAKING if the old name was one of the 7 required contract columns;
+        # a rename of some unrelated optional column is merely a WARNING.
+        severity = BREAKING if old_name in REQUIRED_COLUMNS else WARNING
+        findings.append({
+            &quot;severity&quot;: severity,
+            &quot;area&quot;: &quot;column&quot;,
+            &quot;message&quot;: (
+                f&quot;Column &#x27;{old_name}&#x27; appears to have been renamed to &#x27;{new_name}&#x27; &quot;
+                f&quot;(same value shape, column missing/added together).&quot;
+            ),
+            &quot;impact&quot;: (
+                f&quot;Any code referencing &#x27;{old_name}&#x27; by name (joins, sorts, filters) &quot;
+                f&quot;will silently stop finding it.&quot;
+                if severity == BREAKING
+                else f&quot;Low impact: &#x27;{old_name}&#x27; was not a required field.&quot;
+            ),
+        })  # end of this finding
+
+    renamed_old = set(renames.keys())     # old names already explained by a rename above
+    renamed_new = set(renames.values())   # new names already explained by a rename above
+
+    # Anything missing that WASN&#x27;T explained by a rename gets reported on its own.
+    for col in sorted(missing - renamed_old):
+        severity = BREAKING if col in REQUIRED_COLUMNS else WARNING
+        findings.append({
+            &quot;severity&quot;: severity,
+            &quot;area&quot;: &quot;column&quot;,
+            &quot;message&quot;: f&quot;Required column &#x27;{col}&#x27; is missing from the new export.&quot; if severity == BREAKING
+                       else f&quot;Optional column &#x27;{col}&#x27; is missing from the new export.&quot;,
+            &quot;impact&quot;: &quot;Downstream code expecting this column will error or silently produce blanks.&quot;
+                       if severity == BREAKING else &quot;Minimal impact; column was not required.&quot;,
+        })
+
+    # Anything new that WASN&#x27;T explained by a rename gets reported here - this is
+    # where &quot;expected new column&quot; is split from &quot;unannounced new column&quot;.
+    for col in sorted(added - renamed_new):
+        if col in ALLOWED_NEW_COLUMNS:     # pre-approved by the team as safe
+            findings.append({
+                &quot;severity&quot;: INFO,
+                &quot;area&quot;: &quot;column&quot;,
+                &quot;message&quot;: f&quot;New column &#x27;{col}&#x27; detected - this is on the pre-approved safe list.&quot;,
+                &quot;impact&quot;: &quot;No action needed. Existing reports ignore unknown columns.&quot;,
+            })
+        else:                               # not on the approved list - review, but don&#x27;t fail the run
+            findings.append({
+                &quot;severity&quot;: WARNING,
+                &quot;area&quot;: &quot;column&quot;,
+                &quot;message&quot;: f&quot;New column &#x27;{col}&#x27; detected - not on the pre-approved list.&quot;,
+                &quot;impact&quot;: &quot;Probably safe (extra data), but confirm with the source team before relying on it.&quot;,
+            })
+
+    return findings   # unsorted - run() sorts everything by severity later
+
+
+def check_row_values(fields, rows, filelabel, findings):
+    &quot;&quot;&quot;Validate customer_id, date, and status on every row of one file.
+
+    Args:
+        fields (list[str]): Column names present in this file.
+        rows (list[dict]): Row dicts to validate.
+        filelabel (str): Short label (usually the filename) used in messages.
+        findings (list[dict]): Shared findings list; mutated in place.
+
+    Returns:
+        None: Findings are appended to the `findings` argument in place.
+    &quot;&quot;&quot;
+    id_pattern = re.compile(REQUIRED_COLUMNS[&quot;customer_id&quot;])   # reuse the contract&#x27;s own regex, don&#x27;t duplicate it
+    # Check whichever date column name is actually present, so this keeps
+    # working even after signup_date gets renamed to created_on.
+    date_col = &quot;signup_date&quot; if &quot;signup_date&quot; in fields else (
+        &quot;created_on&quot; if &quot;created_on&quot; in fields else None
+    )
+    iso_date = re.compile(r&quot;^\d{4}-\d{2}-\d{2}$&quot;)   # strict format check, independent of the column&#x27;s name
+    seen_ids = {}   # customer_id -&gt; list of line numbers it appeared on, for duplicate detection
+
+    for line_no, row in enumerate(rows, start=2):  # start=2: physical line 1 in the CSV is the header
+        cid = (row.get(&quot;customer_id&quot;) or &quot;&quot;).strip()      # &quot;&quot; if the column is missing entirely, not a crash
+        if cid and not id_pattern.match(cid):               # only validate non-empty IDs
+            # This is what catches &#x27;CUST-102&#x27; (no zero-padding) and &#x27;107&#x27; (no prefix) in the sample data.
+            findings.append({
+                &quot;severity&quot;: BREAKING,
+                &quot;area&quot;: &quot;row-data&quot;,
+                &quot;message&quot;: f&quot;[{filelabel} line {line_no}] customer_id &#x27;{cid}&#x27; does not match CUST-###### format.&quot;,
+                &quot;impact&quot;: &quot;Row will fail to join against systems keyed on the standard customer_id format.&quot;,
+            })
+        if cid:
+            seen_ids.setdefault(cid, []).append(line_no)   # record this ID&#x27;s location for the duplicate check below
+
+        if date_col:                                         # only check dates if a date column was found at all
+            val = (row.get(date_col) or &quot;&quot;).strip()
+            if val and not iso_date.match(val):               # non-empty but wrong format
+                # Catches &#x27;11/05/2025&#x27; and &#x27;2025/11/22&#x27; in the sample data.
+                findings.append({
+                    &quot;severity&quot;: BREAKING,
+                    &quot;area&quot;: &quot;row-data&quot;,
+                    &quot;message&quot;: f&quot;[{filelabel} line {line_no}] {date_col} &#x27;{val}&#x27; is not in YYYY-MM-DD format.&quot;,
+                    &quot;impact&quot;: &quot;Date-based sorting/filtering in the weekly report will misorder or drop this row.&quot;,
+                })
+
+        status = (row.get(&quot;status&quot;) or &quot;&quot;).strip()
+        if status and status not in ALLOWED_STATUS:   # unexpected value - flag for review, don&#x27;t hard-fail
+            findings.append({
+                &quot;severity&quot;: WARNING,
+                &quot;area&quot;: &quot;row-data&quot;,
+                &quot;message&quot;: f&quot;[{filelabel} line {line_no}] status &#x27;{status}&#x27; is outside the approved set {sorted(ALLOWED_STATUS)}.&quot;,
+                &quot;impact&quot;: &quot;Row may be miscategorized in status-based report sections.&quot;,
+            })
+
+    # After scanning every row, look for any customer_id that showed up more than once.
+    for cid, lines in seen_ids.items():
+        if len(lines) &gt; 1:
+            findings.append({
+                &quot;severity&quot;: BREAKING,
+                &quot;area&quot;: &quot;row-data&quot;,
+                &quot;message&quot;: f&quot;[{filelabel}] customer_id &#x27;{cid}&#x27; repeats on lines {lines}.&quot;,
+                &quot;impact&quot;: &quot;Duplicate IDs will double-count this customer in aggregated reports.&quot;,
+            })
+
+
+def run(baseline_path, new_path):
+    &quot;&quot;&quot;Load both exports and run the full column + row-level comparison.
+
+    Args:
+        baseline_path (str): Path to the known-good baseline CSV.
+        new_path (str): Path to the new (possibly drifted) CSV.
+
+    Returns:
+        tuple[list[str], list[str], list[dict]]: (baseline column names,
+        new-file column names, findings sorted most-severe first).
+    &quot;&quot;&quot;
+    # Orchestration: load both files once, run both checks into the same findings list.
+    baseline_fields, baseline_rows = read_csv(baseline_path)   # the known-good file
+    new_fields, new_rows = read_csv(new_path)                   # this week&#x27;s (possibly drifted) file
+
+    findings = diff_columns(baseline_fields, new_fields, baseline_rows, new_rows)   # column-level findings first
+    check_row_values(new_fields, new_rows, Path(new_path).name, findings)           # row-level findings appended
+
+    order = {BREAKING: 0, WARNING: 1, INFO: 2}        # sort key: most severe first
+    findings.sort(key=lambda f: order[f[&quot;severity&quot;]])
+    return baseline_fields, new_fields, findings       # handed to render_report() by main()
+
+
+def render_report(baseline_path, new_path, baseline_fields, new_fields, findings):
+    &quot;&quot;&quot;Format a findings list into the fixed-width text report.
+
+    Args:
+        baseline_path (str): Path to the baseline CSV (shown in the header).
+        new_path (str): Path to the new CSV (shown in the header).
+        baseline_fields (list[str]): Baseline column names, for display.
+        new_fields (list[str]): New-file column names, for display.
+        findings (list[dict]): Findings to render, most-severe first.
+
+    Returns:
+        str: The complete report text, ready to print or write to a file.
+    &quot;&quot;&quot;
+    # Pure formatting - turns the findings list into the exact text saved to drift_report.txt.
+    lines = []
+    lines.append(&quot;=&quot; * 72)                              # opening banner
+    lines.append(&quot;SCHEMA-DRIFT REPORT&quot;)
+    lines.append(&quot;=&quot; * 72)
+    lines.append(f&quot;Baseline file : {baseline_path}&quot;)
+    lines.append(f&quot;New file      : {new_path}&quot;)
+    lines.append(f&quot;Baseline cols : {&#x27;, &#x27;.join(baseline_fields)}&quot;)   # quick visual diff against the next line
+    lines.append(f&quot;New cols      : {&#x27;, &#x27;.join(new_fields)}&quot;)
+    lines.append(&quot;&quot;)
+
+    counts = {BREAKING: 0, WARNING: 0, INFO: 0}         # tally findings per severity for the summary line
+    for f in findings:
+        counts[f[&quot;severity&quot;]] += 1
+    lines.append(
+        f&quot;Summary: {counts[BREAKING]} breaking, {counts[WARNING]} need review, {counts[INFO]} informational&quot;
+    )
+    lines.append(&quot;-&quot; * 72)
+
+    if not findings:
+        lines.append(&quot;No drift detected. New export matches the column contract.&quot;)   # clean-run message
+    else:
+        for f in findings:   # one finding per 2-line block: severity+message, then impact
+            lines.append(f&quot;[{f[&#x27;severity&#x27;]:9s}] {f[&#x27;message&#x27;]}&quot;)        # :9s aligns BREAKING/WARNING/INFO
+            lines.append(f&quot;            Likely impact: {f[&#x27;impact&#x27;]}&quot;)
+            lines.append(&quot;&quot;)
+
+    lines.append(&quot;=&quot; * 72)
+    lines.append(&quot;Source files were opened read-only; neither CSV was modified by this run.&quot;)  # the no-mutation guarantee, stated in the output itself
+    lines.append(&quot;=&quot; * 72)
+    return &quot;\n&quot;.join(lines)   # single string, ready to print or write to a file
+
+
+def main():
+    &quot;&quot;&quot;CLI entry point: parse arguments, run the check, print/save the
+    report, and exit non-zero if any BREAKING finding was detected.
+
+    Returns:
+        None: Exits the process via sys.exit() instead of returning.
+    &quot;&quot;&quot;
+    parser = argparse.ArgumentParser(description=&quot;Compare a new customer export against a known-good baseline.&quot;)
+    # Both paths are optional, defaulting to the bundled demo samples - this is
+    # what lets the exact same script run with zero arguments for the demo, or
+    # with real file paths against next week&#x27;s actual export.
+    parser.add_argument(&quot;baseline&quot;, nargs=&quot;?&quot;, default=str(Path(__file__).resolve().parent.parent / &quot;data&quot; / &quot;baseline_customers.csv&quot;))
+    parser.add_argument(&quot;new&quot;, nargs=&quot;?&quot;, default=str(Path(__file__).resolve().parent.parent / &quot;data&quot; / &quot;drifted_customers.csv&quot;))
+    parser.add_argument(&quot;--out&quot;, help=&quot;Also write the report to this file.&quot;)   # optional: also save a copy to disk
+    args = parser.parse_args()
+
+    baseline_fields, new_fields, findings = run(args.baseline, args.new)                        # do the comparison
+    report = render_report(args.baseline, args.new, baseline_fields, new_fields, findings)       # format as text
+
+    print(report)   # always show on screen, so it&#x27;s visible live during the recording
+    if args.out:
+        Path(args.out).write_text(report, encoding=&quot;utf-8&quot;)   # writes the REPORT file only - never a source CSV
+        print(f&quot;\nReport also written to {args.out}&quot;)
+
+    has_breaking = any(f[&quot;severity&quot;] == BREAKING for f in findings)
+    sys.exit(1 if has_breaking else 0)   # non-zero exit lets a scheduled job detect failure automatically
+
+
+if __name__ == &quot;__main__&quot;:   # only run main() when executed directly, not when imported
+    main()
+</code></pre>
+
+<div class="note">Narration tip for the recording: don't read every comment in the annotated file out loud &mdash; type from it, but only say the explanation aloud for the handful of lines that matter to a non-technical viewer: the contract dict (around line 27), the rename heuristic (around line 86), the read-only <code class="inline">open()</code> call (around line 63), the breaking-vs-informational split for new columns (around line 134), and the exit code (around line 262). Everything else can stay on screen as a silent cheat-sheet while you type.</div>
+  </div>
+
+  <!-- TASK -->
+  <div id="task" class="panel">
+    <h2>Task &mdash; verbatim</h2>
+    <p>Reproduced exactly as given, with no additions or omissions:</p>
+
+    <h3>Goal</h3>
+    <blockquote>Build a schema-drift sentinel for a small operations team that receives weekly customer exports and needs to catch quiet format changes before they break downstream reports. In a 15&ndash;20 minute recording, I will compare one known-good CSV with one intentionally changed sample, write the team&#39;s expected columns and rules in Apple Notes, implement a compact Python comparison in Visual Studio Code that flags added or missing fields and suspicious ID/date changes, then prepare a concise response note in Word.</blockquote>
+
+    <h3>Starting point</h3>
+    <blockquote>Two small synthetic customer-export CSVs: one baseline and one with deliberate changes such as a renamed column, a new field, and inconsistent date or ID formatting. A short plain-language column contract will be prepared in Notes. No comparison script or drift report exists yet.</blockquote>
+
+    <h3>Apps and tools</h3>
+    <table>
+      <tr><th>#</th><th>Declared app</th><th>Edition / License</th></tr>
+      <tr><td>1</td><td>Visual Studio Code</td><td>Historical project use (edition not recorded); other</td></tr>
+      <tr><td>2</td><td>Notes.app</td><td>Bundled with macOS 27 Golden Gate (27.0.1); free</td></tr>
+      <tr><td>3</td><td>Word</td><td>Microsoft 365 (or latest desktop version); paid</td></tr>
+    </table>
+
+    <h3>Deliverable</h3>
+    <blockquote>A reusable Python schema-drift checker, a readable report of each detected change and its likely downstream impact, and a one-page analyst response note in Word. The output will distinguish expected new columns from breaking changes and will not modify either source file.</blockquote>
+
+    <h3>Prior work and reuse</h3>
+    <blockquote>New task. No prior task is being continued.</blockquote>
+  </div>
+</div>
+
+<footer>Schema-Drift Sentinel &mdash; Task Report &middot; generated for planning the recorded walkthrough &middot; Task - 81C8A13537544E46ADCB3554AB97C5CB</footer>
+
+<script>
+  function showTab(id){
+    document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+    var btns = document.querySelectorAll('.tab-btn');
+    for (var i = 0; i < btns.length; i++) {
+      if (btns[i].getAttribute('onclick').indexOf(id) !== -1) {
+        btns[i].classList.add('active');
+      }
+    }
+  }
+
+  function escChar(c){
+    if (c === '&') return '&amp;';
+    if (c === '<') return '&lt;';
+    if (c === '>') return '&gt;';
+    return c;
+  }
+  function escStr(s){
+    var out = '';
+    for (var k = 0; k < s.length; k++) out += escChar(s[k]);
+    return out;
+  }
+
+  // Minimal Python-aware colorizer: walks the raw source text once, treats
+  // anything inside a string literal (single, double, or triple-quoted) as
+  // plain code so a '#' inside a string (e.g. "CUST-######") is never
+  // mistaken for the start of a comment, then wraps real comments/docstrings.
+  function colorizePython(src){
+    var i = 0, n = src.length, out = '';
+    while (i < n) {
+      var c = src[i];
+      if (c === '#') {
+        var j = src.indexOf('\n', i);
+        if (j === -1) j = n;
+        out += '<span class="cmt">' + escStr(src.slice(i, j)) + '</span>';
+        i = j;
+        continue;
+      }
+      if ((c === '"' || c === "'") && src[i+1] === c && src[i+2] === c) {
+        var q = c + c + c;
+        var j2 = src.indexOf(q, i + 3);
+        j2 = (j2 === -1) ? n : j2 + 3;
+        out += '<span class="doc">' + escStr(src.slice(i, j2)) + '</span>';
+        i = j2;
+        continue;
+      }
+      if (c === '"' || c === "'") {
+        var q2 = c, j3 = i + 1;
+        while (j3 < n && src[j3] !== q2) { j3 += (src[j3] === '\\') ? 2 : 1; }
+        j3 = Math.min(j3 + 1, n);
+        out += escStr(src.slice(i, j3));
+        i = j3;
+        continue;
+      }
+      out += escChar(c);
+      i += 1;
+    }
+    // Give a whole-line comment (nothing but whitespace before the '#')
+    // a diff-style highlighted row; an inline trailing comment just stays
+    // colored text next to its code.
+    var lines = out.split('\n');
+    for (var li = 0; li < lines.length; li++) {
+      if (/^\s*<span class="cmt">/.test(lines[li])) {
+        lines[li] = lines[li].replace(/^(\s*)<span class="cmt">/, '$1<span class="cmt cmt-line">');
+      }
+    }
+    return lines.join('\n');
+  }
+
+  ['code-clean', 'code-annotated'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = colorizePython(el.textContent);
+  });
+</script>
+
+</body>
+</html>

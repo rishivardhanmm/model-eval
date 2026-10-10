@@ -1,0 +1,31 @@
+========================================================================
+SCHEMA-DRIFT REPORT
+========================================================================
+Baseline file : data/baseline_customers.csv
+New file      : data/drifted_customers.csv
+Baseline cols : customer_id, first_name, last_name, email, signup_date, country, status
+New cols      : customer_id, first_name, last_name, email, created_on, country, status, loyalty_tier
+
+Summary: 5 breaking, 0 need review, 1 informational
+------------------------------------------------------------------------
+[BREAKING ] Column 'signup_date' appears to have been renamed to 'created_on' (same value shape, column missing/added together).
+            Likely impact: Any code referencing 'signup_date' by name (joins, sorts, filters) will silently stop finding it.
+
+[BREAKING ] [drifted_customers.csv line 3] customer_id 'CUST-102' does not match CUST-###### format.
+            Likely impact: Row will fail to join against systems keyed on the standard customer_id format.
+
+[BREAKING ] [drifted_customers.csv line 3] created_on '11/05/2025' is not in YYYY-MM-DD format.
+            Likely impact: Date-based sorting/filtering in the weekly report will misorder or drop this row.
+
+[BREAKING ] [drifted_customers.csv line 8] customer_id '107' does not match CUST-###### format.
+            Likely impact: Row will fail to join against systems keyed on the standard customer_id format.
+
+[BREAKING ] [drifted_customers.csv line 9] created_on '2025/11/22' is not in YYYY-MM-DD format.
+            Likely impact: Date-based sorting/filtering in the weekly report will misorder or drop this row.
+
+[INFO     ] New column 'loyalty_tier' detected - this is on the pre-approved safe list.
+            Likely impact: No action needed. Existing reports ignore unknown columns.
+
+========================================================================
+Source files were opened read-only; neither CSV was modified by this run.
+========================================================================

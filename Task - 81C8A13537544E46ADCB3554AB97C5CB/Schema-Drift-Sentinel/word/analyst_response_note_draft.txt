@@ -1,0 +1,35 @@
+Weekly Customer Export - Schema Drift Alert
+(Type this into a new Word document during the recording. One page, plain language.)
+
+Files compared: baseline_customers.csv (known-good) vs. drifted_customers.csv (this week's export)
+
+Result: 5 breaking changes, 0 flagged for review, 1 informational.
+Recommend holding this week's automated report until the issues below are resolved.
+
+What changed
+- [Breaking] Column renamed: signup_date -> created_on.
+- [Breaking] Two customer_id values don't match the CUST-###### format (CUST-102, 107).
+- [Breaking] Two created_on values use the wrong date format (11/05/2025 and 2025/11/22).
+- [Informational] New column loyalty_tier was added - pre-approved by the team as a safe addition.
+
+Likely downstream impact
+- The weekly report joins on customer_id and sorts by signup_date. The rename alone means any
+  step that still looks for signup_date by name will stop finding it until the report logic is
+  updated.
+- The two malformed customer_id values will fail to join against other systems, so those two
+  customers will silently disappear from joined reports rather than raising an error.
+- The two malformed dates will sort incorrectly or be dropped by date-range filters in the report.
+- loyalty_tier is safe to ignore for now - it is on the team's pre-approved list of new fields and
+  existing reports do not depend on it.
+
+Recommendation
+Hold this week's automated report. Ask the source team to confirm whether signup_date was
+intentionally renamed to created_on, and to fix the two malformed customer_id and date values at
+the source before re-export. Once corrected, re-run drift_check.py - a clean run (0 breaking
+findings) clears this export to feed the pipeline.
+
+Reference
+Full technical findings: script/drift_report.txt (output of drift_check.py).
+Column rules: notes/column_contract.txt ("Customer Export - Column Contract").
+
+Neither source CSV was modified in producing this report.

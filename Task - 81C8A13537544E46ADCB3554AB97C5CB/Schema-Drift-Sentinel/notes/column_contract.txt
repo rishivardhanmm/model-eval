@@ -1,0 +1,24 @@
+Customer Export — Column Contract
+(Paste this into Apple Notes. This is the plain-language spec the drift checker validates against.)
+
+Expected columns, in order:
+1. customer_id   — required. Format: CUST- followed by exactly 6 digits (e.g. CUST-000101). Must be unique per row.
+2. first_name    — required. Free text.
+3. last_name     — required. Free text.
+4. email         — required. Must look like a real email address (something@something.something).
+5. signup_date   — required. Format: YYYY-MM-DD only. No slashes, no other orderings.
+6. country       — required. Exactly 2 uppercase letters (ISO country code).
+7. status        — required. Must be one of: active, inactive, pending.
+
+Columns we've pre-approved as safe to add (not breaking if they show up):
+- loyalty_tier   — optional. Marketing added this; downstream reports ignore unknown columns safely.
+
+Rules for calling something "breaking" vs "safe":
+- Breaking: any of the 7 required columns above is missing, renamed, or reordered-away under a different name.
+- Breaking: customer_id values that don't match the CUST-###### pattern (e.g. missing the prefix, missing leading zeros).
+- Breaking: signup_date values that aren't YYYY-MM-DD (e.g. MM/DD/YYYY or YYYY/MM/DD slipped in).
+- Safe / informational: a brand-new column we already approved (see list above).
+- Needs review (not automatically breaking): a brand-new column NOT on the approved list — flag it, don't fail the run.
+- Needs review: a status value outside active/inactive/pending.
+
+Why this matters: the weekly report joins on customer_id and sorts by signup_date. If either one quietly changes shape, the join silently drops rows or the date sort silently breaks — no error, just a wrong report.
