@@ -1,0 +1,33 @@
+
+[
+  {
+    "ticket_id": "001024",
+    "status": "Open",
+    "note": "Customer requested a callback."
+  },
+  {
+    "ticket_id": "000157",
+    "status": "Pending",
+    "note": "Order delayed, customer notified."
+  },
+  {
+    "ticket_id": "000208",
+    "status": "Open",
+    "note": "Customer said \"please call me\"."
+  },
+  {
+    "ticket_id": "000319",
+    "status": "In Progress",
+    "note": "First line of the update.\nSecond line of the update."
+  },
+  {
+    "ticket_id": "000420",
+    "status": "Closed",
+    "note": ""
+  },
+  {
+    "ticket_id": "000531",
+    "status": "Pending",
+    "note": "Réponse reçue — café."
+  }
+]

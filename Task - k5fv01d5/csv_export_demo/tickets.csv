@@ -1,0 +1,8 @@
+ticket_id,status,note
+1024,Open,Customer requested a callback.
+157,Pending,Order delayed, customer notified.
+208,Open,Customer said "please call me".
+319,In Progress,First line of the update.
+Second line of the update.
+420,Closed,
+531,Pending,Réponse reçue — café.

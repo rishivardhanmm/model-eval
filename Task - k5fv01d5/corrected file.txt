@@ -1,0 +1,23 @@
+
+#corrected file
+
+import csv
+import json
+
+with open("tickets.json", encoding="utf-8") as file:
+    tickets = json.load(file)
+
+# Let the CSV module handle record boundaries and line endings.
+with open("tickets.csv", "w", encoding="utf-8", newline="") as file:
+    writer = csv.DictWriter(
+        file,
+        fieldnames=["ticket_id", "status", "note"]
+    )
+    writer.writeheader()
+    writer.writerows(tickets)
+
+print(f"Export complete: {len(tickets)} tickets written.")
+
+
+
+
