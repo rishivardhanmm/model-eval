@@ -1,0 +1,19 @@
+Release eligibility contract (fictional input)
+
+A build is eligible if its build_id is known and no exclusion has the same ID.
+A NULL build ID is unknown: withhold it for review.
+A NULL exclusion ID identifies no build: it must not exclude known IDs.
+Repeated exclusion entries must not duplicate or change eligible results.
+All work is read-only; do not update the prepared database.
+
+Main expected IDs: B001, B003, B004, B006, B007, B008, B009.
+B002 and B005 are held; row 10 is unknown and withheld.
+
+Prepared scenarios and expected IDs:
+null_entry: B101, B103
+duplicate_entry: B101, B103
+empty_exclusions: B101, B102, B103
+matching_entry: B101, B103
+unknown_build: B101
+
+All input data and starter material are AI-generated before recording.
