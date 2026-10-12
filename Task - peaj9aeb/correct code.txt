@@ -1,0 +1,117 @@
+
+import json
+import math
+from pathlib import Path
+
+INPUT_FILE = Path(__file__).with_name("readings.json")
+
+
+def convert_reading(record):
+    """Convert one record to a number."""
+    raw_value = record.get("value")
+
+    # Fix: zero is a valid reading.
+    if raw_value is None:
+        print("Rejected missing or null value")
+        return None
+
+    try:
+        value = float(raw_value)
+    except (TypeError, ValueError):
+        print(f"Rejected invalid value: {raw_value!r}")
+        return None
+
+    # Fix: reject NaN and positive/negative Infinity.
+    if not math.isfinite(value):
+        print(f"Rejected non-finite value: {raw_value!r}")
+        return None
+
+    return value
+
+
+def main():
+    records = json.loads(
+        INPUT_FILE.read_text(encoding="utf-8")
+    )
+
+    valid = []
+    results = []
+
+    for record in records:
+        reading_id = record.get("id", "<missing-id>")
+        value = convert_reading(record)
+
+        if value is None:
+            results.append({
+                "id": reading_id,
+                "status": "REJECTED"
+            })
+        else:
+            valid.append({
+                "id": reading_id,
+                "value": value
+            })
+            results.append({
+                "id": reading_id,
+                "status": "ACCEPTED"
+            })
+
+    print("VALID JSON OUTPUT")
+    print(json.dumps(valid, indent=2, allow_nan=False))
+
+    print("\nPER-CASE RESULTS")
+    print(json.dumps(results, indent=2, allow_nan=False))
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+PS C:\Users\Arun Prasath\Downloads\Task - peaj9aeb\telemetry-writer> python telemetry_writer.py
+Rejected non-finite value: 'NaN'
+Rejected non-finite value: 'Infinity'
+Rejected missing or null value
+VALID JSON OUTPUT
+[
+  {
+    "id": "R-001",
+    "value": 0.0
+  },
+  {
+    "id": "R-002",
+    "value": -12.5
+  },
+  {
+    "id": "R-003",
+    "value": 23.75
+  }
+]
+
+PER-CASE RESULTS
+[
+  {
+    "id": "R-001",
+    "status": "ACCEPTED"
+  },
+  {
+    "id": "R-002",
+    "status": "ACCEPTED"
+  },
+  {
+    "id": "R-003",
+    "status": "ACCEPTED"
+  },
+  {
+    "id": "R-004",
+    "status": "REJECTED"
+  },
+  {
+    "id": "R-005",
+    "status": "REJECTED"
+  },
+  {
+    "id": "R-006",
+    "status": "REJECTED"
+  }
+]
