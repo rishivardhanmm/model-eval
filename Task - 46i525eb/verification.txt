@@ -1,0 +1,14 @@
+Build Utility CLI - Verification Results
+
+Valid input: PASS - exit code 0
+Missing input: PASS - exit code 1
+Malformed JSON: PASS - exit code 1
+Invalid arguments: PASS - exit code 2
+Help option: PASS - exit code 0
+
+Standard output: Successful JSON result
+Standard error: Processing errors and invalid-argument messages
+
+Regression tests: 5 passed, 0 failed.
+
+Fix implemented: Processing failures now return a non-zero exit code, and error messages are written to standard error.

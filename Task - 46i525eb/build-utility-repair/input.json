@@ -1,0 +1,9 @@
+{
+    "build": "demo-build-001",
+    "files": [
+        "app.py",
+        "config.json",
+        "requirements.txt"
+    ],
+    "status": "ready"
+}

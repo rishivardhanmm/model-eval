@@ -1,0 +1,58 @@
+PS C:\Users\Arun Prasath\Downloads\Task - 46i525eb> cd build-utility-repair   
+PS C:\Users\Arun Prasath\Downloads\Task - 46i525eb\build-utility-repair> python build_tool.py input.json                                   
+{"build": "demo-build-001", "file_count": 3, "status": "success"}                                                                          
+PS C:\Users\Arun Prasath\Downloads\Task - 46i525eb\build-utility-repair> $LASTEXITCODE                                                     
+0                                                                                                                                          
+PS C:\Users\Arun Prasath\Downloads\Task - 46i525eb\build-utility-repair> python build_tool.py missing.json                                 
+ERROR: [Errno 2] No such file or directory: 'missing.json'                                                                                 
+PS C:\Users\Arun Prasath\Downloads\Task - 46i525eb\build-utility-repair> $LASTEXITCODE                    
+0                                     
+PS C:\Users\Arun Prasath\Downloads\Task - 46i525eb\build-utility-repair> '{"build":' | Set-Content malformed.json
+PS C:\Users\Arun Prasath\Downloads\Task - 46i525eb\build-utility-repair> python build_tool.py malformed.json                               
+ERROR: Expecting value: line 2 column 1 (char 10)                                                                                          
+PS C:\Users\Arun Prasath\Downloads\Task - 46i525eb\build-utility-repair> $LASTEXITCODE                           
+0
+PS C:\Users\Arun Prasath\Downloads\Task - 46i525eb\build-utility-repair> Remove-Item malformed.json              
+PS C:\Users\Arun Prasath\Downloads\Task - 46i525eb\build-utility-repair> python build_tool.py                                              
+usage: build_tool.py [-h] input                                                                                                            
+build_tool.py: error: the following arguments are required: input                
+PS C:\Users\Arun Prasath\Downloads\Task - 46i525eb\build-utility-repair> $LASTEXITCODE             
+2
+PS C:\Users\Arun Prasath\Downloads\Task - 46i525eb\build-utility-repair> python build_tool.py --help                                       
+usage: build_tool.py [-h] input                                                                                                            
+                                                                                 
+Process fictional build metadata.
+
+positional arguments:
+  input       Path to the input JSON file
+
+options:
+  -h, --help  show this help message and exit
+PS C:\Users\Arun Prasath\Downloads\Task - 46i525eb\build-utility-repair> $LASTEXITCODE              
+0
+PS C:\Users\Arun Prasath\Downloads\Task - 46i525eb\build-utility-repair>      
+
+
+
+
+
+
+
+
+
+
+
+at last verify
+PS C:\Users\Arun Prasath\Downloads\Task - 46i525eb\build-utility-repair> python -m unittest -v test_cli.py    
+
+PS C:\Users\Arun Prasath\Downloads\Task - 46i525eb\build-utility-repair> python -m unittest -v test_cli.py                                 
+test_help (test_cli.CommandTests.test_help) ... ok                                                                                         
+test_invalid_arguments (test_cli.CommandTests.test_invalid_arguments) ... ok     
+test_malformed_json (test_cli.CommandTests.test_malformed_json) ... ok
+test_missing_input (test_cli.CommandTests.test_missing_input) ... ok
+test_valid_input (test_cli.CommandTests.test_valid_input) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.632s
+
+OK

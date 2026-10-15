@@ -1,0 +1,52 @@
+#build_tool.py
+
+
+import argparse
+import json
+import sys
+
+
+def process_input(input_path):
+    """Read and validate fictional build metadata."""
+    with open(input_path, "r", encoding="utf-8") as file:
+        data = json.load(file)
+
+    if not isinstance(data, dict):
+        raise ValueError("Input must be a JSON object.")
+
+    if not isinstance(data.get("build"), str) or not data["build"]:
+        raise ValueError("Missing or invalid build name.")
+
+    if not isinstance(data.get("files"), list):
+        raise ValueError("The files field must be a list.")
+
+    return {
+        "build": data["build"],
+        "file_count": len(data["files"]),
+        "status": "success"
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Process fictional build metadata."
+    )
+    parser.add_argument("input", help="Path to the input JSON file")
+
+    try:
+        args = parser.parse_args()
+    except SystemExit as error:
+        return error.code
+
+    try:
+        result = process_input(args.input)
+    except (OSError, json.JSONDecodeError, ValueError) as error:
+        print(f"ERROR: {error}", file=sys.stderr)
+        return 1
+
+    print(json.dumps(result))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
