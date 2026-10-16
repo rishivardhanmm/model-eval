@@ -1,0 +1,34 @@
+
+# Corrected code: work items stored as a dataclass
+
+from dataclasses import dataclass
+
+
+@dataclass
+class WorkItem:
+    item_id: int
+    title: str
+    priority: str
+
+
+work_items = [
+    WorkItem(101, "Fix login issue", "High"),
+    WorkItem(102, "Update documentation", "Low"),
+    WorkItem(103, "Repair payment bug", "Medium"),
+]
+
+
+def print_summary(items):
+    for item in items:
+        item_id = item.item_id
+        title = item.title
+        priority = item.priority
+
+        print(
+            f"ID: {item_id} | "
+            f"Title: {title} | "
+            f"Priority: {priority}"
+        )
+
+
+print_summary(work_items)
