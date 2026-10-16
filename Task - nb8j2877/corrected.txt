@@ -1,0 +1,36 @@
+from collections import Counter
+
+logs = [
+    "INFO: Application started",
+    "WARNING: Disk space low",
+    "ERROR: Connection failed",
+    "INFO: User logged in",
+    "ERROR: File not found",
+]
+
+counts = Counter(log.split(":")[0] for log in logs)
+
+print("INFO:", counts["INFO"])
+print("WARNING:", counts["WARNING"])
+print("ERROR:", counts["ERROR"])
+
+# Example without WARNING
+logs_without_warning = [
+    "INFO: Application started",
+    "ERROR: Connection failed",
+]
+
+counts = Counter(log.split(":")[0] for log in logs_without_warning)
+
+print("INFO:", counts["INFO"])
+print("WARNING:", counts["WARNING"])
+print("ERROR:", counts["ERROR"])
+
+# Empty example
+empty_logs = []
+
+counts = Counter(log.split(":")[0] for log in empty_logs)
+
+print("INFO:", counts["INFO"])
+print("WARNING:", counts["WARNING"])
+print("ERROR:", counts["ERROR"])
